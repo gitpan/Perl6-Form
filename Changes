@@ -14,3 +14,8 @@ Revision history for Perl extension Perl6::Form.
 0.03	Fri Feb 27 03:42:07 2004
 
 	First public release
+
+
+0.04	Tue Mar  9 02:59:48 2004
+
+    - Updated internals to mirror interface changes in Perl6::Export

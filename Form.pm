@@ -1,7 +1,7 @@
 package Perl6::Form;
 use 5.008;
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 use Perl6::Export;
 use Scalar::Util qw( readonly );
@@ -1059,7 +1059,7 @@ sub linecount($) {
 
 use warnings::register;
 
-sub form is exported(ALWAYS) {
+sub form is export(:MANDATORY) {
 	croak "Useless call to &form in void context" unless defined wantarray;
 	
 	# Handle formatting calls...
@@ -1253,7 +1253,7 @@ sub slice {
 
 sub vals { return ref eq 'HASH' ? values %$_ : @$_ for $_[0] }
 
-sub drill (\[@%];@) is exportable {
+sub drill (\[@%];@) is export {
     my ($structure, @indices) = @_;
 	return $structure unless @indices;
 	my $index = shift @indices;
@@ -1293,7 +1293,7 @@ sub break_nl {
 
 my $wsnzw = q{ (??{length($^N)?'(?=)':'(?!)'}) };
 
-sub break_at is exportable {
+sub break_at is export {
     my ($hyphen) = @_;
 	my ($lit_hy) = qr/\Q$hyphen\E/;
     my $hylen = length($hyphen);         
@@ -4656,7 +4656,7 @@ In other words, each pair is a macro that maps a user-defined field
 (specified by the pair's key) onto a standard C<form> field (specified by
 the pair's value). For example:
 
-    field => [ rx/\{ X+ \}/ => \&censor_field ]
+    field => [ qr/\{ X+ \}/x => \&censor_field ]
 
 This tells C<form> that whenever it finds a brace-delimited field consisting
 of one or more X's, it should call a subroutine named C<censor_field> and
@@ -4720,7 +4720,7 @@ to create a module that encapsulates the new formatting functionality:
 	use Form { field => [ rx/\{ X+ \}/ => \&censor_field ] };
 
 	# Re-export the specialized &form that was imported above...  
-	sub form is exported {...}
+	sub form is export(:DEFAULT) {...}
 
 }
 

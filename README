@@ -1,5 +1,5 @@
 ==============================================================================
-                    Release of version 0.03 of Perl6::Form
+                    Release of version 0.04 of Perl6::Form
 ==============================================================================
 
 
@@ -34,10 +34,10 @@ Damian Conway (damian@conway.org)
 
 ==============================================================================
 
-CHANGES IN VERSION 0.03
+CHANGES IN VERSION 0.04
 
 
-	First public release
+    - Updated internals to mirror interface changes in Perl6::Export
 
 
 ==============================================================================
