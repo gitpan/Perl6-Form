@@ -1,3 +1,5 @@
+use 5.010;
+
 use Perl6::Form;
 
 my @text = <DATA>;

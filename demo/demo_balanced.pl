@@ -1,3 +1,6 @@
+use 5.010;
+use warnings;
+
 use Perl6::Form;
 
 my $a = "a " x 100;

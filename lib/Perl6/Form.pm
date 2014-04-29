@@ -1,7 +1,7 @@
 package Perl6::Form;
 use 5.008;
 
-our $VERSION = '0.04';
+our $VERSION = '0.005';
 
 use Perl6::Export;
 use Scalar::Util qw( readonly );
@@ -12,218 +12,218 @@ use charnames ':full';
 my %caller_opts;
 
 sub fatal {
-	croak @_, "\nin call to &form";
+    croak @_, "\nin call to &form";
 }
 
 sub defined_or_space {
-	return " " if !defined $_[0] || length $_[0] == 0; 
-	return $_[0];
+    return " " if !defined $_[0] || length $_[0] == 0;
+    return $_[0];
 }
 
 sub boolean {
-	return $_[0] ? 1 : 0;
+    return $_[0] ? 1 : 0;
 }
 
 sub pattern {
-	return $_[0] if ref $_[0] eq 'Regexp';
-	return $_[0] ? qr/(?=)/ : qr/(?!)/;
+    return $_[0] if ref $_[0] eq 'Regexp';
+    return $_[0] ? qr/(?=)/ : qr/(?!)/;
 }
 
 sub code {
-	my ($newval, $name ) = @_;
-	my $type = ref($newval) || "'$newval'";
-	fatal "Value for '$name' option must be code reference (not $type)"
-			unless $type eq 'CODE';
-	return $newval;
+    my ($newval, $name ) = @_;
+    my $type = ref($newval) || "'$newval'";
+    fatal "Value for '$name' option must be code reference (not $type)"
+            unless $type eq 'CODE';
+    return $newval;
 }
 
 my %std_one = (
-	'=' => '{=[{1}[=}',
-	'_' => '{_[{1}[_}',
+    '=' => '{=[{1}[=}',
+    '_' => '{_[{1}[_}',
 );
 
 sub one_char {
-	my ($newval, undef, $opts ) = @_;
-	$newval = [ $newval ] unless ref $newval eq 'ARRAY';
-	for (@$newval) {
-		fatal "Value for 'single' option must be single character (not '$_')"
-			if length() != 1;
-		$opts->{field} =
-			user_def([qr/\Q$_\E/, $std_one{$_}||'{[{1}[}'], 'single', $opts);
-	}
-	return;
+    my ($newval, undef, $opts ) = @_;
+    $newval = [ $newval ] unless ref $newval eq 'ARRAY';
+    for (@$newval) {
+        fatal "Value for 'single' option must be single character (not '$_')"
+            if length() != 1;
+        $opts->{field} =
+            user_def([qr/\Q$_\E/, $std_one{$_}||'{[{1}[}'], 'single', $opts);
+    }
+    return;
 }
 
 sub layout_word {
-	fatal "Value for layout option must be 'across', 'down', 'balanced', ",
-		  "or 'tabular\n(not '$_[0]')"
-			unless $_[0] =~ /^(across|down|balanced|tabular)$/;
-	return $_[0];
+    fatal "Value for layout option must be 'across', 'down', 'balanced', ",
+          "or 'tabular\n(not '$_[0]')"
+            unless $_[0] =~ /^(across|down|balanced|tabular)$/;
+    return $_[0];
 }
 
 sub pos_integer {
-	fatal "Value for '$_[1]' option must be positive integer (not $_[0])"
-			unless int($_[0]) eq $_[0] && $_[0] > 0;
-	return $_[0];
+    fatal "Value for '$_[1]' option must be positive integer (not $_[0])"
+            unless int($_[0]) eq $_[0] && $_[0] > 0;
+    return $_[0];
 }
 
 sub strings_or_undef {
-	my ($val, $name) = @_;
-	my $type = ref $val;
-	if (!defined $val) { $val = [] }
-	elsif (!$type)     { $val = [ "$val" ] }
-	fatal "Value for '$name' option must be string, array of strings, or undef (not \L$type\E)"
-			unless ref $val eq 'ARRAY';
-	return $val;
+    my ($val, $name) = @_;
+    my $type = ref $val;
+    if (!defined $val) { $val = [] }
+    elsif (!$type)     { $val = [ "$val" ] }
+    fatal "Value for '$name' option must be string, array of strings, or undef (not \L$type\E)"
+            unless ref $val eq 'ARRAY';
+    return $val;
 }
 
-my $unlimited = ~0>>1;			# Ersatz infinity
+my $unlimited = ~0>>1;          # Ersatz infinity
 
 sub height_vals {
-	my ($vals) = @_;
-	my $type = ref $vals;
-	if (!defined $vals)      { $vals = {min=>0,     max=>$unlimited} }
-	elsif (!$type && $vals eq 'minimal')
-						     { $vals = {min=>0, max=>$unlimited, minimal=>1} }
-	elsif (!$type) 		     { $vals = {min=>$vals, max=>$vals}     }
-	elsif ($type eq 'HASH')  { $vals->{min}||=0;
-							   defined $vals->{max} or $vals->{max}=$unlimited;
-							 }
-	fatal "Values for height option must be positive integers (not $_[0])"
-				unless ref $vals eq 'HASH'
-					&& !grep {int($vals->{$_}) ne $vals->{$_}} qw(min max);
-	return $vals;
+    my ($vals) = @_;
+    my $type = ref $vals;
+    if (!defined $vals)      { $vals = {min=>0,     max=>$unlimited} }
+    elsif (!$type && $vals eq 'minimal')
+                             { $vals = {min=>0, max=>$unlimited, minimal=>1} }
+    elsif (!$type)           { $vals = {min=>$vals, max=>$vals}     }
+    elsif ($type eq 'HASH')  { $vals->{min}||=0;
+                               defined $vals->{max} or $vals->{max}=$unlimited;
+                             }
+    fatal "Values for height option must be positive integers (not $_[0])"
+                unless ref $vals eq 'HASH'
+                    && !grep {int($vals->{$_}) ne $vals->{$_}} qw(min max);
+    return $vals;
 }
 
 my %nothing = map {$_=>sub{""}} qw(first even odd other);
 
 sub std_body {
-	my ($rows, $fill, $opt) = @_;
-	join("", @$rows, @$fill);
+    my ($rows, $fill, $opt) = @_;
+    join("", @$rows, @$fill);
 }
 my %std_body = (other =>\&std_body);
 
 my %def_page = (
-	length => $unlimited,
-	width  => 78,
-	header => \%nothing,		# Args: ($opts)
-	footer => \%nothing,		# Args: ($opts)
-	body   => \%std_body,		# Args: ($body_rows, $body_len, $opts)
-	feed   => \%nothing,		# Args: ($opts)
-	number => undef,
+    length => $unlimited,
+    width  => 78,
+    header => \%nothing,        # Args: ($opts)
+    footer => \%nothing,        # Args: ($opts)
+    body   => \%std_body,       # Args: ($body_rows, $body_len, $opts)
+    feed   => \%nothing,        # Args: ($opts)
+    number => undef,
 );
 
 sub form_body {
-	my ($format) = @_;
-	$format = '{[{*}[}' unless defined $format;
-	return sub {
-		my ($rows, $fill, $opt) = @_;
-		my %form_opts = ( page=>{width => $opt->{page}{width}} );
-		@{$form_opts{height}}{qw(min max)} = (@$rows+@$fill) x 2
-			unless $opt->{page}{length} == $unlimited;
-		return form(\%form_opts, $format, $rows);
-	}
+    my ($format) = @_;
+    $format = '{[{*}[}' unless defined $format;
+    return sub {
+        my ($rows, $fill, $opt) = @_;
+        my %form_opts = ( page=>{width => $opt->{page}{width}} );
+        @{$form_opts{height}}{qw(min max)} = (@$rows+@$fill) x 2
+            unless $opt->{page}{length} == $unlimited;
+        return form(\%form_opts, $format, $rows);
+    }
 }
 
 sub hashify {
-	my ($what, $val, $default_undef, $default_val) = @_;
-	if (!defined $val) {
-		return { other => $default_undef};
-	}
-	if (!ref $val) {
-		return { other => $default_val->($val) };
-	}
-	if (ref $val eq 'CODE') {
-		return { other => $val };
-	}
-	if (ref $val eq 'HASH') {
-		fatal "Invalid key for $what: '$_'" 
-			for grep { !/^(first|last|even|odd|other)$/ } keys %$val;
-		my %hash;
-		for (keys %$val) {
-			if (!ref $val->{$_}) {
-				$hash{$_} = $default_val->($val->{$_})
-			}
-			elsif (ref $val->{$_} ne 'CODE') {
-				fatal "Value for $what '$_' must be string or subroutine";
-			}
-			else {
-				$hash{$_} = $val->{$_};
-			}
-		}
-		return \%hash;
-	}
-	fatal "Value for $what must be string, subroutine, or hash";
+    my ($what, $val, $default_undef, $default_val) = @_;
+    if (!defined $val) {
+        return { other => $default_undef};
+    }
+    if (!ref $val) {
+        return { other => $default_val->($val) };
+    }
+    if (ref $val eq 'CODE') {
+        return { other => $val };
+    }
+    if (ref $val eq 'HASH') {
+        fatal "Invalid key for $what: '$_'"
+            for grep { !/^(first|last|even|odd|other)$/ } keys %$val;
+        my %hash;
+        for (keys %$val) {
+            if (!ref $val->{$_}) {
+                $hash{$_} = $default_val->($val->{$_})
+            }
+            elsif (ref $val->{$_} ne 'CODE') {
+                fatal "Value for $what '$_' must be string or subroutine";
+            }
+            else {
+                $hash{$_} = $val->{$_};
+            }
+        }
+        return \%hash;
+    }
+    fatal "Value for $what must be string, subroutine, or hash";
 }
 
 sub page_hash {
-	my ($h, undef, $opts) = @_;
-	fatal "Value for 'page' option must be hash reference (not $_)"
-		for grep $_ ne 'HASH', ref $h;
-	$h = { %{$opts->{page}}, %$h };
-	fatal "Unknown page sub-option ('$_')"
-		for grep {!exists $def_page{$_}} keys %$h;
-	fatal "Page $_ must be greater than zero"
-		for grep $h->{$_} <= 0, qw(length width);
-	$h->{body} =
-		hashify("body preprocessor", $h->{body}, \&std_body, \&form_body);
-	for (qw( header footer feed )) {
-		$h->{$_} = hashify($_, $h->{$_}, sub{""}, sub{my($str)=@_; sub{$str}});
-	}
-	return $h;
+    my ($h, undef, $opts) = @_;
+    fatal "Value for 'page' option must be hash reference (not $_)"
+        for grep $_ ne 'HASH', ref $h;
+    $h = { %{$opts->{page}}, %$h };
+    fatal "Unknown page sub-option ('$_')"
+        for grep {!exists $def_page{$_}} keys %$h;
+    fatal "Page $_ must be greater than zero"
+        for grep $h->{$_} <= 0, qw(length width);
+    $h->{body} =
+        hashify("body preprocessor", $h->{body}, \&std_body, \&form_body);
+    for (qw( header footer feed )) {
+        $h->{$_} = hashify($_, $h->{$_}, sub{""}, sub{my($str)=@_; sub{$str}});
+    }
+    return $h;
 }
 
 sub filehandle {
-	fatal "Value for 'out' option must be filehandle (not '$_')"
-			for grep {$_ ne 'GLOB' } ref $_[0];
-	return $_[0];
+    fatal "Value for 'out' option must be filehandle (not '$_')"
+            for grep {$_ ne 'GLOB' } ref $_[0];
+    return $_[0];
 }
 
 sub user_def {
-	my ($spec, $name, $opts) = @_;
-	my $type = ref $spec;
-	fatal "Value of 'field' option must be an array of pairs or a hash (not ",
-		  $type||"'$spec'", ")"
-				unless $type =~ /^(ARRAY|HASH)$/;
-	if ($type eq 'ARRAY') {
-		fatal "Missing value for last user-defined field ('$spec->[-1]')"
-			if @$spec % 2;
-	}
-	else {
-		$spec = [%$spec];
-	}
-	my @from = @{$opts->{field}{from}||=[]};
-	my @to   = @{$opts->{field}{to}||=[]};
-	my $count = @from;
-	for (my $i=0; $i<@$spec; $i+=2, $count++) {
-		my ($pat, $fld) = @{$spec}[$i,$i+1];
-		push @from, "$pat(?{$count})";
-		push @to,   (ref $fld eq 'CODE' ? $fld : sub{$fld});
-	}
-	return {from=>\@from, to=>\@to};
+    my ($spec, $name, $opts) = @_;
+    my $type = ref $spec;
+    fatal "Value of 'field' option must be an array of pairs or a hash (not ",
+          $type||"'$spec'", ")"
+                unless $type =~ /^(ARRAY|HASH)$/;
+    if ($type eq 'ARRAY') {
+        fatal "Missing value for last user-defined field ('$spec->[-1]')"
+            if @$spec % 2;
+    }
+    else {
+        $spec = [%$spec];
+    }
+    my @from = @{$opts->{field}{from}||=[]};
+    my @to   = @{$opts->{field}{to}||=[]};
+    my $count = @from;
+    for (my $i=0; $i<@$spec; $i+=2, $count++) {
+        my ($pat, $fld) = @{$spec}[$i,$i+1];
+        push @from, "$pat(?{$count})";
+        push @to,   (ref $fld eq 'CODE' ? $fld : sub{$fld});
+    }
+    return {from=>\@from, to=>\@to};
 }
 
 my %std_opt = (
-	out  	=> { set => \&filehandle,		def => \*STDOUT,			},
-	ws    	=> { set => \&pattern,			def => undef,				},
-	fill 	=> { set => \&defined_or_space,	def => " ",					},
-	lfill 	=> { set => \&defined_or_space,	def => undef,				},
-	rfill 	=> { set => \&defined_or_space,	def => undef,				},
-	hfill 	=> { set => \&defined_or_space,	def => undef,				},
-	tfill 	=> { set => \&defined_or_space,	def => undef,				},
-	bfill 	=> { set => \&defined_or_space,	def => undef,				},
-	vfill 	=> { set => \&defined_or_space,	def => undef,				},
-	single	=> { set => \&one_char,         def => undef,				},
-	field 	=> { set => \&user_def,	        def => {from=>[],to=>[]}	},
-	bullet 	=> { set => \&strings_or_undef, def => []					},
-	height	=> { set => \&height_vals,		def => {min=>0, max=>$unlimited} },
-	layout	=> { set => \&layout_word,		def => 'balanced',			},
-	break 	=> { set => \&code,				def => break_at('-'),		},
-	page	=> { set => \&page_hash,		def => {%def_page},			},
-	under	=> { set => sub {"$_[0]"},		def => undef				},
-	interleave	=> { set => \&boolean,		def => 0					},
-	untrimmed  	=> { set => \&boolean,		def => 0,					},
-	locale  	=> { set => \&boolean,		def => 0,					},
+    out     => { set => \&filehandle,       def => \*STDOUT,            },
+    ws      => { set => \&pattern,          def => undef,               },
+    fill    => { set => \&defined_or_space, def => " ",                 },
+    lfill   => { set => \&defined_or_space, def => undef,               },
+    rfill   => { set => \&defined_or_space, def => undef,               },
+    hfill   => { set => \&defined_or_space, def => undef,               },
+    tfill   => { set => \&defined_or_space, def => undef,               },
+    bfill   => { set => \&defined_or_space, def => undef,               },
+    vfill   => { set => \&defined_or_space, def => undef,               },
+    single  => { set => \&one_char,         def => undef,               },
+    field   => { set => \&user_def,         def => {from=>[],to=>[]}    },
+    bullet  => { set => \&strings_or_undef, def => []                   },
+    height  => { set => \&height_vals,      def => {min=>0, max=>$unlimited} },
+    layout  => { set => \&layout_word,      def => 'balanced',          },
+    break   => { set => \&code,             def => break_at('-'),       },
+    page    => { set => \&page_hash,        def => {%def_page},         },
+    under   => { set => sub {"$_[0]"},      def => undef                },
+    interleave  => { set => \&boolean,      def => 0                    },
+    untrimmed   => { set => \&boolean,      def => 0,                   },
+    locale      => { set => \&boolean,      def => 0,                   },
 );
 
 my %def_opts = map {$_=>$std_opt{$_}{def}}  keys %std_opt;
@@ -237,22 +237,22 @@ sub get_locale_vals {   # args: $dec_mark, $thou_sep, $thou_group
 }
 
 my %std_literal = (
-	break	=> \&break_lit,
-	literal	=> 1,
-	vjust	=> \&jverlit,
-	hjust	=> \&jhorlit,
+    break   => \&break_lit,
+    literal => 1,
+    vjust   => \&jverlit,
+    hjust   => \&jhorlit,
 );
 
 sub update(\%\%;$) {
-	my ($old, $new, $croak) = @_;
-	my @bad;
-	for my $opt (keys %$new) {
-		my $std = $std_opt{$opt};
-		push @bad, "Unknown option: $opt=>'$new->{$opt}" and next unless $std;
-		$old->{$opt} = $std->{set}->($new->{$opt}, $opt, $old);
-	}
-	if (@bad && $croak) { croak join "\n", @bad }
-	elsif (@bad)        { fatal join "\n", @bad }
+    my ($old, $new, $croak) = @_;
+    my @bad;
+    for my $opt (keys %$new) {
+        my $std = $std_opt{$opt};
+        push @bad, "Unknown option: $opt=>'$new->{$opt}" and next unless $std;
+        $old->{$opt} = $std->{set}->($new->{$opt}, $opt, $old);
+    }
+    if (@bad && $croak) { croak join "\n", @bad }
+    elsif (@bad)        { fatal join "\n", @bad }
 }
 
 
@@ -260,194 +260,202 @@ sub update(\%\%;$) {
 # Horizontal justifiers
 
 sub fillpat {
-	my ($pos, $fill, $len) = @_;
-	return "" if $len < 0;
-	return substr($fill x (($pos+$len)/length($fill)+1), $pos, $len);
+    my ($pos, $fill, $len) = @_;
+    return "" if $len < 0;
+    return substr($fill x (($pos+$len)/length($fill)+1), $pos, $len);
 }
 
-sub jhorlit {}	# literals don't need any justification
+sub jhorlit {}  # literals don't need any justification
 
 sub jverbatim {
-	jleft(@_, precropped=>1);
+    jleft(@_, precropped=>1);
 }
 
 sub jleft {
-	my (undef, %val) = @_;
-	$_[0] =~ s/^\s+// unless $val{precropped};
-	my $len = length $_[0];
-	$_[0] .= fillpat($val{pos}+$len, $val{post}, $val{width}-$len);
-	substr($_[0],$val{width}) = "" unless $val{stretch};
+    my (undef, %val) = @_;
+    $_[0] =~ s/^\s+// unless $val{precropped};
+    my $len = length $_[0];
+    $_[0] .= fillpat($val{pos}+$len, $val{post}, $val{width}-$len);
+    substr($_[0],$val{width}) = "" unless $val{stretch};
  }
 
  sub jright {
-	my (undef, %val) = @_;
-	$_[0] =~ s/\s+$// unless $val{precropped};
-	$_[0] = fillpat($val{pos}, $val{pre}, $val{width}-length($_[0])) . $_[0];
-	substr($_[0],0,-$val{width}) = "" unless $val{stretch};
+    my (undef, %val) = @_;
+    $_[0] =~ s/\s+$// unless $val{precropped};
+    $_[0] = fillpat($val{pos}, $val{pre}, $val{width}-length($_[0])) . $_[0];
+    substr($_[0],0,-$val{width}) = "" unless $val{stretch};
  }
 
  sub jcentre {
-	my (undef, %val) = @_;
-	$_[0] =~ s/^\s+|\s+$//g;
-	$val{precropped} = 1;
-	my $indent = int( ($val{width}-length $_[0])/2 );
-	jleft($_[0], %val, stretch=>0, pos=>$val{pos}+$indent, width=>$val{width}-$indent);
-	jright($_[0], %val);
+    my (undef, %val) = @_;
+    $_[0] =~ s/^\s+|\s+$//g;
+    $val{precropped} = 1;
+    my $indent = int( ($val{width}-length $_[0])/2 );
+    jleft($_[0], %val, stretch=>0, pos=>$val{pos}+$indent, width=>$val{width}-$indent);
+    jright($_[0], %val);
  }
 
  sub jfull {
-	my ($str, %val) = @_;
-	my $rem = $val{width};
-	$str =~ s/^\s+|\s+$//g;
-	unless ($val{last}) {
-		my $rem = $val{width}-length($str);
-		$str = reverse $str;
-		1 while $rem>0 && $str =~ s/( +)/($rem-->0?" ":"").$1/ge;
-		$_[0] = reverse $str;
-	}
-	&jleft;
+    my ($str, %val) = @_;
+    my $rem = $val{width};
+    $str =~ s/^\s+|\s+$//g;
+    unless ($val{last}) {
+        my $rem = $val{width}-length($str);
+        $str = reverse $str;
+        1 while $rem>0 && $str =~ s/( +)/($rem-->0?" ":"").$1/ge;
+        $_[0] = reverse $str;
+    }
+    &jleft;
  }
 
  sub jsingle {
-	my (undef, %val) = @_;
-	$_[0] = length $_[0] ? substr($_[0],0,1) : fillpat($val{pos}, $val{pre},1);
+    my (undef, %val) = @_;
+    $_[0] = length $_[0] ? substr($_[0],0,1) : fillpat($val{pos}, $val{pre},1);
  }
 
  sub jfatal {
-	die "Internal error in &form."
+    die "Internal error in &form."
  }
 
  sub joverflow (\%\%) {
-	$_[0]{overflow} = 1;
-	%{$_[1]} = ();
-	return \&jfatal;
+    $_[0]{overflow} = 1;
+    %{$_[1]} = ();
+    return \&jfatal;
  }
 
  sub jbullet {
-	return ($_[0],1);
+    return ($_[0],1);
  }
 
  sub jnum {
-	my ($fld,$precurr,$incurr,$postcurr,$width,$opts,$setplaces,$checkplaces)
-		= @_;
-	my $orig = $fld;
-	$incurr ||= qr/(?!)/;
+    my ($fld,$precurr,$incurr,$postcurr,$width,$opts,$setplaces,$checkplaces)
+        = @_;
+    my $orig = $fld;
+    $incurr ||= qr/(?!)/;
 
-	my $missing = $width-length($fld);
-	if ($missing>0) { $fld = substr($fld,0,1) x $missing . $fld }
-	my ($whole, $point, $places) =
-				($fld =~ /^([]{>,.' 0]*)([.,]|\Q$incurr\E)([[}<0]*)/g);
-	$opts->{lfill} = '0' if $whole  =~ m/^0+/; 
-	$opts->{rfill} = '0' if $places =~ m/0+$/; 
-	my $comma = $whole =~ /([,.' ])/ ? $1 : '';
-	my $grouping;
-	if ($comma) {
-		$grouping = $whole =~ /,(?:\]{2},\]{3}|>{2},>{3})\z/ ? [3,2] # Subcont
-				  : $whole =~ /[,.' ](\]+|>+)\z/             ? [length($1)]
-				  : 										   undef;
-	}
-	if (defined $setplaces) {
-		$places = $setplaces;
-		$whole = $width - length($point) - $setplaces;
-	}
-	else {
-		$_ = length for $whole, $places;
-	}
-	fatal "Inconsistent number of decimal places in numeric field.\n",
-		  "Specified as $checkplaces but found $places"
-				if $checkplaces && $places != $checkplaces;
-	my $huh = ('?'x$whole).$point.('?'x$places);
-	my $duh = ('#'x$whole).$point.('#'x$places);
+    my $missing = $width-length($fld);
+    if ($missing>0) { $fld = substr($fld,0,1) x $missing . $fld }
+    my $comma_count  = $fld=~tr/,//;
+    my $period_count = $fld=~tr/.//;
+    my $apost_count  = $fld=~tr/ '//;
+    my $integral = $comma_count > 1  && !($period_count || $apost_count)
+                || $period_count > 1 && !($comma_count  || $apost_count)
+                || $apost_count > 1  && !($comma_count  || $period_count);
+    my ($whole, $point, $places) =
+        $integral ? ($fld, "", "")
+                  : ($fld =~ /^([]{>,.' 0]*)([.,]|\Q$incurr\E)([[}<0]*)/g);
+    $opts->{lfill} = '0' if $whole  =~ m/^0+/;
+    $opts->{rfill} = '0' if $places =~ m/0+$/;
+    my $comma = $whole =~ /([,.' ])/ ? $1 : '';
+    my $grouping;
+    if ($comma) {
+        $grouping = $whole =~ /,(?:\]{2},\]{3}|>{2},>{3})\z/ ? [3,2] # Subcont
+                  : $whole =~ /[,.' ](\]+|>+)\z/             ? [length($1)]
+                  :                                            undef;
+    }
+    if (defined $setplaces) {
+        $places = $setplaces;
+        $whole = $width - length($point) - $setplaces;
+    }
+    else {
+        $_ = length for $whole, $places;
+    }
+    fatal "Inconsistent number of decimal places in numeric field.\n",
+          "Specified as $checkplaces but found $places"
+                if $checkplaces && $places != $checkplaces;
+    my $huh = ('?'x$whole).$point.('?'x$places);
+    my $duh = ('#'x$whole).$point.('#'x$places);
 
-	$places -= length($postcurr);
+    $places -= length($postcurr);
 
-	get_locale_vals($point, $comma, $grouping) if $opts->{locale};
+    get_locale_vals($point, $comma, $grouping) if $opts->{locale};
 
-	return sub {
-		my ($orig, %val) = @_;
-		$_[0] = " "x$val{width} and return if $orig =~ /^\s*$/;
-		$orig =~ s/,|\Q$incurr\E/./ if $point ne '.';
-		my ($pre,$post) = ($precurr,$postcurr);
-		if ($orig !~ /^\s*-/) {
-			$pre  =~ s/^[(-]|[(-]$/ /g;
-			$post =~ s/^[)-]|[)-]$/ /g;
-		}
-		else {
-			$pre = $pre =~ /[(-]/ || $post =~ /[)-]/ ? "-$pre" : " $pre"
-				unless $orig = -$orig;
-		}
-		my ($fail, $str);
-		{
-			local $SIG{__WARN__} = sub { $fail = 1 };
-			$str = sprintf('%*.*f',$val{width},$places,$orig);
-		}
-		if ($fail) {
-			$_[0] = $huh;
-		}
-		else {
-			my($w,$p) = ($str =~ /^\s*(.*)\.(.*)$/g);
-			if ($grouping) {
-				my @groups = @$grouping;
-				my $group = shift @groups;
-				if ($group) {
-					$w =~ s/(\d)(\d{$group})\z/$1$comma$2/;
-					do {
-						$group = shift @groups if @groups;
-					} while $group && $w =~ s/(?<!,)(\d)(\d{$group})(?!\d)/$1$comma$2/;
-				}
-			}
-			if (!$val{stretch} && ($w ? length($w) : 0)+length($pre) > $whole) {
-				$_[0] = $duh;
-			}
-			else {
-				$str = $w.q(.).$p;
-				$str =~ s/(\.\d+?)(0+)$/$1/
-					unless $orig =~ /\.\d{$places,}[1-9]/;
-				$str =~ s/^/$pre/;
-				if ($val{pre} =~ /^0+$/) {
-					$str =~ s{^((\D*)(\d.*))\.}
-						     {$2 . ("0"  x ($whole-length $1)) . "$3."}e;
-					$val{pre} = " ";
-				}
-				$str =~ s/^(.*)\./$1$point/;
-				my $width = $val{width}-$whole+length($1);
-				jleft($str, %val, width=>$width, precropped=>1);
-				jright($str, %val, precropped=>1);
-				my $postlen = length($post);
-				$str =~ s/(?:[ ]{$postlen}([ ]*)|.{$postlen}())$/$post$+/
-					if $postlen;
-				$_[0] = $str;
-			}
-		}
-	}
+    return sub {
+        my ($orig, %val) = @_;
+        $_[0] = " "x$val{width} and return if $orig =~ /^\s*$/;
+        $orig =~ s/,|\Q$incurr\E/./ if $point ne '.';
+        my ($pre,$post) = ($precurr,$postcurr);
+        if ($orig !~ /^\s*-/) {
+            $pre  =~ s/^[(-]|[(-]$/ /g;
+            $post =~ s/^[)-]|[)-]$/ /g;
+        }
+        else {
+            $pre = $pre =~ /[(-]/ || $post =~ /[)-]/ ? "-$pre" : " $pre"
+                unless $orig = -$orig;
+        }
+        my ($fail, $str);
+        {
+            local $SIG{__WARN__} = sub { $fail = 1 };
+            $str = sprintf('%*.*f',$val{width},$places,$orig);
+        }
+        if ($fail) {
+            $_[0] = $huh;
+        }
+        else {
+            my($w,$p) = ($str =~ /^\s*(.*)\.(.*)$/g);  # floating point
+            ($w,$p) = ($str=~/^\s*(.*)$/,"") if !$w;   # integer
+            if ($grouping) {
+                my @groups = @$grouping;
+                my $group = shift @groups;
+                if ($group) {
+                    $w =~ s/(\d)(\d{$group})\z/$1$comma$2/;
+                    do {
+                        $group = shift @groups if @groups;
+                    } while $group && $w =~ s/(?<!,)(\d)(\d{$group})(?!\d)/$1$comma$2/;
+                }
+            }
+            if (!$val{stretch} && ($w ? length($w) : 0)+length($pre) > $whole) {
+                $_[0] = $duh;
+            }
+            else {
+                $str = $w.q(.).$p;
+                $str =~ s/(\.\d+?)(0+)$/$1/
+                    unless $orig =~ /\.\d{$places,}[1-9]/;
+                $str =~ s/^/$pre/;
+                if ($val{pre} =~ /^0+$/) {
+                    $str =~ s{^((\D*)(\d.*))\.}
+                             {$2 . ("0"  x ($whole-length $1)) . "$3."}e;
+                    $val{pre} = " ";
+                }
+                $str =~ s/^(.*)\./$1$point/;
+                my $width = $val{width}-$whole+length($1);
+                jleft($str, %val, width=>$width, precropped=>1);
+                jright($str, %val, precropped=>1);
+                my $postlen = length($post);
+                $str =~ s/(?:[ ]{$postlen}([ ]*)|.{$postlen}())$/$post$+/
+                    if $postlen;
+                $_[0] = $str;
+            }
+        }
+    }
  }
 
 
 # Vertical justifiers
 
 sub jverlit {
-	my ($height, $above, $below, $column) = @_;
-	push @$column, ($column->[0]||"") while @$column < $height;
+    my ($height, $above, $below, $column) = @_;
+    push @$column, ($column->[0]||"") while @$column < $height;
 }
 
 sub jmiddle {
-	my ($height, $above, $below, $column) = @_;
-	my $add = int(($height-@$column)/2);
-	splice @$column, 0, 0, ($above)x$add;
-	$add = $height-@$column;
-	push @$column, ($below)x$add;
+    my ($height, $above, $below, $column) = @_;
+    my $add = int(($height-@$column)/2);
+    splice @$column, 0, 0, ($above)x$add;
+    $add = $height-@$column;
+    push @$column, ($below)x$add;
 }
 
 sub jbottom {
-	my ($height, $above, $below, $column) = @_;
-	my $pre = $height-@$column;
-	splice @$column, 0, 0, ($above)x$pre;
+    my ($height, $above, $below, $column) = @_;
+    my $pre = $height-@$column;
+    splice @$column, 0, 0, ($above)x$pre;
 }
 
 sub jtop {
-	my ($height, $above, $below, $column) = @_;
-	my $post = $height-@$column;
-	push @$column, ($below)x$post;
+    my ($height, $above, $below, $column) = @_;
+    my $post = $height-@$column;
+    push @$column, ($below)x$post;
 }
 
 
@@ -456,614 +464,614 @@ my $incurrpat   = qr/([]>0]) ([^]0>[<,'. ]+?) ([[<0])  /x;
 my $postcurrpat = qr/([[<0]) ([^]0>[<]+)     (\}$)     /x;
 
 sub perl6_match {
-	my ($str, $pat) = @_;
-	use re 'eval';
-	if (my @vals = $str =~ /$pat/) {
-		unshift @vals, $&;
-		bless \@vals, 'Perl6::Form::Rule::Okay';
-	}
-	else {
-		bless [], 'Perl6::Form::Rule::Fail';
-	}
+    my ($str, $pat) = @_;
+    use re 'eval';
+    if (my @vals = $str =~ /$pat/) {
+        unshift @vals, $&;
+        bless \@vals, 'Perl6::Form::Rule::Okay';
+    }
+    else {
+        bless [], 'Perl6::Form::Rule::Fail';
+    }
 }
 
 my $litval;
 sub litval {
-	($litval) = @_ if @_;
-	return $litval;
+    ($litval) = @_ if @_;
+    return $litval;
 }
 
 my ($fld, $udnum);
 sub fldvals {
-	($fld, $udnum) = @_ if @_;
-	return ($fld, $udnum);
+    ($fld, $udnum) = @_ if @_;
+    return ($fld, $udnum);
 }
 
 our $nestedbraces = qr/ \{ (?: (?> ((?!\{|\}).)+ ) | (??{ $nestedbraces }) )* \} /sx;
 
 sub segment ($\@\%$\%) {
-	my ($format, $args, $opts, $fldcnt, $argcache) = @_;
-	my $width =
-		defined $opts->{page}{width} ? $opts->{page}{width} : length($format);
-	my $userdef = join("|", @{$opts->{field}{from}}) || qr/(?!)/;
-	my $bullet  = join("|", map quotemeta, @{$opts->{bullet}}) || qr/(?!)/;
-	use re 'eval';
-	my @format;
-	while ($format =~ /\G ((?>(?:\\.|(?!$userdef|$bullet|\{).)*))
-														 (?{litval($^N)})
-						  (?: ($userdef)                 (?{fldvals($^N,$^R)})
-						    | ($bullet)                  (?{fldvals($^N,-1)})
-						    | ($nestedbraces)			 (?{fldvals($^N,undef)})
-						  )
-					  /gcsx) {
-		push @format, litval(), fldvals();
-	}
-	push @format, substr ($format, pos($format)||0);
-	my $args_req = int(@format/3);
-	my (@formatters,@starred,@vstarred);
-	for my $i (0..$args_req) {
-		my ($literal,$field,$userdef) = @format[3*$i..3*$i+2];
-		$literal =~ s/\\\{/{/g;
-		push @formatters, { %std_literal,
-							width => length($literal),
-							src	  => \$literal,
-						  };
-		$width -= length($literal);
-		if (defined $field) {
-			my %form;
-			my %fldopts = %$opts;
-			$fldcnt++;
-			my ($setwidth, $setplaces, $checkwidth, $checkplaces);
-			if (defined $userdef) {
-				if ($userdef < 0) {
-					$form{isbullet} = \"$field";
-				}
-				else {
-					my ($from,$to) =
-						map $_->[$userdef], @{$opts->{field}}{'from','to'};
-					$field = $to->(perl6_match($field,$from),\%fldopts);
-				}
-			}
-			my $fld = $field;
-			my ($precurr, $incurr, $postcurr) = ("")x3;
-			$form{width} = length $field;
-			if ($form{isbullet}) {
-				$form{vjust} = \&jtop;
-				$form{hjust} = \&jbullet;
-				$form{break} = \&break_bullet;
-				$form{src}   = [];
-				($form{bullethole} = $field) =~ s/./ /gs;
-			}
-			else {
-				$form{stretch} = !$form{isbullet} && $fld =~ s/[+]//;
-				@form{qw(verbatim break hjust)}
-					= (1, \&break_verbatim, \&jverbatim)
-						if $fld =~ /["']/ && $fld !~ /[][><]/;
-						# was: if $fld =~ /["']/ && $fld !~ /[][]/;
-				$form{trackpos} = $fld =~ s/(\{):|:(\})/$+/g;
-				$form{vjust} = $fld =~ s/=//g ? \&jmiddle
-							 : $fld =~ s/_//g ? \&jbottom
-							 :                  \&jtop
-							 ;
+    my ($format, $args, $opts, $fldcnt, $argcache) = @_;
+    my $width =
+        defined $opts->{page}{width} ? $opts->{page}{width} : length($format);
+    my $userdef = join("|", @{$opts->{field}{from}}) || qr/(?!)/;
+    my $bullet  = join("|", map quotemeta, @{$opts->{bullet}}) || qr/(?!)/;
+    use re 'eval';
+    my @format;
+    while ($format =~ /\G ((?>(?:\\.|(?!$userdef|$bullet|\{).)*))
+                                                         (?{litval($^N)})
+                          (?: ($userdef)                 (?{fldvals($^N,$^R)})
+                            | ($bullet)                  (?{fldvals($^N,-1)})
+                            | ($nestedbraces)            (?{fldvals($^N,undef)})
+                          )
+                      /gcsx) {
+        push @format, litval(), fldvals();
+    }
+    push @format, substr ($format, pos($format)||0);
+    my $args_req = int(@format/3);
+    my (@formatters,@starred,@vstarred);
+    for my $i (0..$args_req) {
+        my ($literal,$field,$userdef) = @format[3*$i..3*$i+2];
+        $literal =~ s/\\\{/{/g;
+        push @formatters, { %std_literal,
+                            width => length($literal),
+                            src   => \$literal,
+                          };
+        $width -= length($literal);
+        if (defined $field) {
+            my %form;
+            my %fldopts = %$opts;
+            $fldcnt++;
+            my ($setwidth, $setplaces, $checkwidth, $checkplaces);
+            if (defined $userdef) {
+                if ($userdef < 0) {
+                    $form{isbullet} = \"$field";
+                }
+                else {
+                    my ($from,$to) =
+                        map $_->[$userdef], @{$opts->{field}}{'from','to'};
+                    $field = $to->(perl6_match($field,$from),\%fldopts);
+                }
+            }
+            my $fld = $field;
+            my ($precurr, $incurr, $postcurr) = ("")x3;
+            $form{width} = length $field;
+            if ($form{isbullet}) {
+                $form{vjust} = \&jtop;
+                $form{hjust} = \&jbullet;
+                $form{break} = \&break_bullet;
+                $form{src}   = [];
+                ($form{bullethole} = $field) =~ s/./ /gs;
+            }
+            else {
+                $form{stretch} = !$form{isbullet} && $fld =~ s/[+]//;
+                @form{qw(verbatim break hjust)}
+                    = (1, \&break_verbatim, \&jverbatim)
+                        if $fld =~ /["']/ && $fld !~ /[][><]/;
+                        # was: if $fld =~ /["']/ && $fld !~ /[][]/;
+                $form{trackpos} = $fld =~ s/(\{):|:(\})/$+/g;
+                $form{vjust} = $fld =~ s/=//g ? \&jmiddle
+                             : $fld =~ s/_//g ? \&jbottom
+                             :                  \&jtop
+                             ;
 
-				$DB::single=1;
                 ($checkwidth, $extras) = $fld =~ m/\(\s*(\d+[.,]?\d*)\s*\)/g;
-				fatal "Too many width specifications in $field" if $extras;
-				if ($checkwidth) {
-					$checkplaces = $checkwidth =~ s/[.,](\d+)// && $1;
-					for ($fld) {
-						s{([][><I|Vv"']) (\(\s*\d+[.,]?\d*\s*\))}
-						 { $1 . ($1 x length $2) }xe and last;
-						s{(\(\s*\d+[.,]?\d*\s*\)) ([][><I|V"'])}
-						 { ($2 x length $1) . $2 }xe and last;
-						s{(> [.,]) (\(\s*\d+[.,]?\d*\s*\))}
-						 { $1 . ('<' x length $2) }xe and last;
-						s{(\(\s*\d+[.,]?\d*\s*\)) ([.,] <)}
-						 { ('>' x length $1) . $2 }xe and last;
-						s{(\(\s*\d+[.,]?\d*\s*\)) ([.,] \[)}
-						 { (']' x length $1) . $2 }xe and last;
-						s{(\(\s*\d+[.,]?\d*\s*\))}
-						 { '[' x length $1 }xe and last;
-					}
-				}
+                fatal "Too many width specifications in $field" if $extras;
+                if ($checkwidth) {
+                    $checkplaces = $checkwidth =~ s/[.,](\d+)// && $1;
+                    for ($fld) {
+                        s{([][><I|Vv"']) (\(\s*\d+[.,]?\d*\s*\))}
+                         { $1 . ($1 x length $2) }xe and last;
+                        s{(\(\s*\d+[.,]?\d*\s*\)) ([][><I|V"'])}
+                         { ($2 x length $1) . $2 }xe and last;
+                        s{(> [.,]) (\(\s*\d+[.,]?\d*\s*\))}
+                         { $1 . ('<' x length $2) }xe and last;
+                        s{(\(\s*\d+[.,]?\d*\s*\)) ([.,] <)}
+                         { ('>' x length $1) . $2 }xe and last;
+                        s{(\(\s*\d+[.,]?\d*\s*\)) ([.,] \[)}
+                         { (']' x length $1) . $2 }xe and last;
+                        s{(\(\s*\d+[.,]?\d*\s*\))}
+                         { '[' x length $1 }xe and last;
+                    }
+                }
 
                 ($setwidth, $extras) = $fld =~ m/\{\s*(\d+[.,]?\d*|\*)\s*\}/g
-								   and $fld =~ s/\{\s*(\d+[.,]?\d*|\*)\s*\}//;
-				fatal "Too many width specifications in $field"
-					if $extras || $setwidth && $checkwidth;
-				if ($setwidth && $setwidth =~ s/[.,](\d+)//) {
-					$setplaces = $1 || 0;
-				}
+                                   and $fld =~ s/\{\s*(\d+[.,]?\d*|\*)\s*\}//;
+                fatal "Too many width specifications in $field"
+                    if $extras || $setwidth && $checkwidth;
+                if ($setwidth && $setwidth =~ s/[.,](\d+)//) {
+                    $setplaces = $1 || 0;
+                }
 
-				for ([$checkwidth, $checkplaces], [$setwidth, $setplaces]) {
-					fatal "Can't fit $_->[1] decimal place",($_->[1]!=1?'s':''),
-						  " in a $_->[0]-character field" 
-							  if defined($_->[0]) && defined($_->[1])
-							  && $_->[0] ne '*'
-							  && $_->[0] <= $_->[1];
-				}
+                for ([$checkwidth, $checkplaces], [$setwidth, $setplaces]) {
+                    fatal "Can't fit $_->[1] decimal place",($_->[1]!=1?'s':''),
+                          " in a $_->[0]-character field"
+                              if defined($_->[0]) && defined($_->[1])
+                              && $_->[0] ne '*'
+                              && $_->[0] <= $_->[1];
+                }
 
-				$precurr =
-					$fld =~ s/$precurrpat/$1.($3 x length $2).$3/e  ? "$2" : "";
-				$incurr =
-					$fld =~ m/$incurrpat/                           ? "$2" : "";
-				$postcurr =
-					$fld =~ s/$postcurrpat/$1.($1 x length $2).$3/e ? "$2" : "";
+                $precurr =
+                    $fld =~ s/$precurrpat/$1.($3 x length $2).$3/e  ? "$2" : "";
+                $incurr =
+                    $fld =~ m/$incurrpat/                           ? "$2" : "";
+                $postcurr =
+                    $fld =~ s/$postcurrpat/$1.($1 x length $2).$3/e ? "$2" : "";
 
-				if ($form{width} == 2) {
-					$fld = '[[';
-				}
-				elsif ($form{width} == 3) {
-					$fld =~ s/^ \{ ([.,]) \} $/].[/x;
-					$fld =~ s/^ \{ (.)    \} $/$+$+$+/x;
-				}
-				elsif ($form{width} > 3)  {
-					$fld =~ s/^ \{ ([.,] \[)   /]$1/x;
-					$fld =~ s/^ \{ ([.,] \<)   />$1/x;
-					$fld =~ s/(\] .* [.,]) \} $/$1\[/x;
-					$fld =~ s/(\> .* [.,]) \} $/$1</x;
-					$fld =~ s/^ \{ (.) | (.) \} $/$+$+/gx;
-				}
+                if ($form{width} == 2) {
+                    $fld = '[[';
+                }
+                elsif ($form{width} == 3) {
+                    $fld =~ s/^ \{ ([.,]) \} $/].[/x;
+                    $fld =~ s/^ \{ (.)    \} $/$+$+$+/x;
+                }
+                elsif ($form{width} > 3)  {
+                    $fld =~ s/^ \{ ([.,] \[)   /]$1/x;
+                    $fld =~ s/^ \{ ([.,] \<)   />$1/x;
+                    $fld =~ s/(\] .* [.,]) \} $/$1\[/x;
+                    $fld =~ s/(\> .* [.,]) \} $/$1</x;
+                    $fld =~ s/^ \{ (.) | (.) \} $/$+$+/gx;
+                }
 
-				$form{width} = $setwidth
-					if defined $setwidth && $setwidth ne '*';
+                $form{width} = $setwidth
+                    if defined $setwidth && $setwidth ne '*';
 
-				if ($form{width} == 2) {
-					$fld = '[[';
-				}
-				elsif ($form{width} == 3) {
-					$fld =~ s/^ \{ ([.,]) \} $/].[/x;
-					$fld =~ s/^ \{ (.)    \} $/$+$+$+/x;
-				}
-				elsif ($form{width} > 3)  {
-					$fld =~ s/^ \{ ([.,] \[)   /]$1/x;
-					$fld =~ s/^ \{ ([.,] \<)   />$1/x;
-					$fld =~ s/(\] .* [.,]) \} $/$1\[/x;
-					$fld =~ s/(\> .* [.,]) \} $/$1</x;
-					$fld =~ s/^ \{ (.) | (.) \} $/$+$+/gx;
-				}
+                if ($form{width} == 2) {
+                    $fld = substr($fld,0,1) x 2;
+                }
+                elsif ($form{width} == 3) {
+                    $fld =~ s/^ \{ ([.,]) \} $/].[/x;
+                    $fld =~ s/^ \{ (.)    \} $/$+$+$+/x;
+                }
+                elsif ($form{width} > 3)  {
+                    $fld =~ s/^ \{ ([.,] \[)   /]$1/x;
+                    $fld =~ s/^ \{ ([.,] \<)   />$1/x;
+                    $fld =~ s/(\] .* [.,]) \} $/$1\[/x;
+                    $fld =~ s/(\> .* [.,]) \} $/$1</x;
+                    $fld =~ s/^ \{ (.) | (.) \} $/$+$+/gx;
+                }
 
-				$form{width} = $setwidth
-					if defined $setwidth && $setwidth ne '*';
-			}
+                $form{width} = $setwidth
+                    if defined $setwidth && $setwidth ne '*';
+            }
 
-			if ($setwidth && $setwidth eq '*')	{
-				push @{$form{verbatim} ? \@vstarred : \@starred}, \%form;
-			}
-			else {
-				$width -= $form{width}
-			}
+            if ($setwidth && $setwidth eq '*')  {
+                push @{$form{verbatim} ? \@vstarred : \@starred}, \%form;
+            }
+            else {
+                $width -= $form{width}
+            }
 
-			$form{line} = 1 unless $form{isbullet} || $fld =~ /[][IV"]/;
+            $form{line} = 1 unless $form{isbullet} || $fld =~ /[][IV"]/;
 
-			$form{hjust} ||= $form{width} == 1					 ? \&jsingle
-					 	   : ($fld =~ /^(?:<+|\[+)$/)			 ? \&jleft
-					 	   : ($fld =~ /^(?:>+|\]+)$/)			 ? \&jright
-			         	   : ($fld =~ /^(?:I+|\|+|>+<+|\]+\[+)$/)? \&jcentre
-			         	   : ($fld =~ /^(?:<+>+|\[+\]+)$/)		 ? \&jfull
-			         	   : ($fld =~ /^(?:V+)$/)				 ?
-													joverflow(%form, %fldopts)
-			         	   : ($fld =~ /^(?: [>,' 0]*  \.          [<0]*
-										  | [],' 0]*  \.          [[0]*
-			         	                  | [>.' 0]*  \,          [<0]*
-										  | [].' 0]*  \,          [[0]*
-										  | [>.,' 0]* \Q$incurr\E [<0]*
-										  | [].,' 0]* \Q$incurr\E [[0]*
-									    )$/x)                     	? do {
-									  $form{break}=\&break_nl;
-									  jnum($fld,$precurr,$incurr,$postcurr,
-										   $form{width},\%fldopts,
-										   $setplaces, $checkplaces)
-																		}
-					 	   : fatal "Field $fldcnt is of unknown type: $field"
-					 	   ;
+            $form{hjust} ||= $form{width} == 1                   ? \&jsingle
+                           : ($fld =~ /^(?:<+|\[+)$/)            ? \&jleft
+                           : ($fld =~ /^(?:>+|\]+)$/)            ? \&jright
+                           : ($fld =~ /^(?:I+|\|+|>+<+|\]+\[+)$/)? \&jcentre
+                           : ($fld =~ /^(?:<+>+|\[+\]+)$/)       ? \&jfull
+                           : ($fld =~ /^(?:V+)$/)                ?
+                                                    joverflow(%form, %fldopts)
+                           : ($fld =~ /^(?: [>,' 0]*  \.          [<0]*
+                                          | [],' 0]*  \.          [[0]*
+                                          | [>.' 0]*  \,          [<0]*
+                                          | [].' 0]*  \,          [[0]*
+                                          | [>.,' 0]* \Q$incurr\E [<0]*
+                                          | [].,' 0]* \Q$incurr\E [[0]*
+                                          | [].' 0]*  \,          [[0]*
+                                        )$/x)                       ? do {
+                                      $form{break}=\&break_nl;
+                                      jnum($fld,$precurr,$incurr,$postcurr,
+                                           $form{width},\%fldopts,
+                                           $setplaces, $checkplaces)
+                                                                        }
+                           : fatal "Field $fldcnt is of unknown type: $field"
+                           ;
 
-			$form{break}=\&break_nl if $form{stretch};
+            $form{break}=\&break_nl if $form{stretch};
 
-			fatal "Inconsistent width for field $fldcnt.\n",
-				  "Specified as '$field' but actual width is $form{width}"
-				if defined $checkwidth && $form{width} != $checkwidth;
+            fatal "Inconsistent width for field $fldcnt.\n",
+                  "Specified as '$field' but actual width is $form{width}"
+                if defined $checkwidth && $form{width} != $checkwidth;
 
-			splice @$args, $i, 0, "" if $form{isbullet}; # BEFORE ANY OPTIONS
+            splice @$args, $i, 0, "" if $form{isbullet}; # BEFORE ANY OPTIONS
 
-			while (ref $args->[$i] eq 'HASH') {
-				update %fldopts, %{splice @$args, $i, 1}; 
-			}
-			$form{opts} = \%fldopts;
+            while (ref $args->[$i] eq 'HASH') {
+                update %fldopts, %{splice @$args, $i, 1};
+            }
+            $form{opts} = \%fldopts;
 
-			splice @$args, $i, 0, "" if $form{overflow}; # AFTER ANY OPTIONS
+            splice @$args, $i, 0, "" if $form{overflow}; # AFTER ANY OPTIONS
 
-			fatal "Missing data value for field ", $i, " ($field)"
-				unless defined $args->[$i];
+            fatal "Missing data value for field ", $i, " ($field)"
+                unless defined $args->[$i];
 
-			for ($args->[$i]) {
-				next if $form{isbullet};
-				$form{src} ||=
-					ref eq 'ARRAY' ? do {
-							my $s = join "", map { s/\n(?!\z)/\r/g; $_ }
-											 map {!defined() ? "\n"
-												 : /\n\z/    ? $_
-												 :             "$_\n"}  @$_;
-							$form{trackpos} ? ($argcache->{$_} ||= \$s) : \$s;
-							}
-				  : (readonly $_ || !$form{trackpos}) ? \(my$s=$_)
-				  : \$_;
-			}
+            for ($args->[$i]) {
+                next if $form{isbullet};
+                $form{src} ||=
+                    ref eq 'ARRAY' ? do {
+                            my $s = join "", map { my $val = $_; $val =~ s/\n(?!\z)/\r/g; $val }
+                                             map {!defined() ? "\n"
+                                                 : /\n\z/    ? $_
+                                                 :             "$_\n"}  @$_;
+                            $form{trackpos} ? ($argcache->{$_} ||= \$s) : \$s;
+                            }
+                  : (readonly $_ || !$form{trackpos}) ? \(my$s=$_)
+                  : \$_;
+            }
 
-			$form{break} ||= $fldopts{break} || $opts->{break};
+            $form{break} ||= $fldopts{break} || $opts->{break};
 
-			push @formatters, \%form;
-		}
-	}
-	splice @$args, 0, $args_req;
-	$_[-1] = $fldcnt;	# remember field count
-	# Distribute {*} widths...
-	for my $f (@vstarred) {
-		$f->{maxwidth} = max 0, map {length} split "\n", ${$f->{src}};
-	}
-	if (@starred||@vstarred) {
-		my $fldwidth = int($width/(@starred+@vstarred));
-		for my $f (@vstarred) {
-			$f->{width} = @starred ? $f->{maxwidth} 
-								   : min $fldwidth, $f->{maxwidth};
-			$width += $fldwidth - $f->{width};
-		}
-		$fldwidth = int($width/(@starred+@vstarred)) if @starred;
-		$_->{width} = $fldwidth for @starred;
-	}
+            push @formatters, \%form;
+        }
+    }
+    splice @$args, 0, $args_req;
+    $_[-1] = $fldcnt;   # remember field count
+    # Distribute {*} widths...
+    for my $f (@vstarred) {
+        $f->{maxwidth} = max 0, map {length} split "\n", ${$f->{src}};
+    }
+    if (@starred||@vstarred) {
+        my $fldwidth = int($width/(@starred+@vstarred));
+        for my $f (@vstarred) {
+            $f->{width} = @starred ? $f->{maxwidth}
+                                   : min $fldwidth, $f->{maxwidth};
+            $width += $fldwidth - $f->{width};
+        }
+        $fldwidth = int($width/(@starred+@vstarred)) if @starred;
+        $_->{width} = $fldwidth for @starred;
+    }
 
-	# Attach bullets to neighbouring fields,
-	# and compute offsets from left margin...
-	my $offset = 0;
-	my $lastbullet;
-	for my $f (@formatters) {
-		$f->{pos} = $offset;
-		$offset += $f->{width};
-		if ($lastbullet) {
-			if ($f->{literal}) {  # IGNORE IT
-			}
-			elsif ($f->{isbullet}) {
-				my $literal = ${$lastbullet->{isbullet}};
-				%$lastbullet = (%std_literal, width=>length($literal), src=>\$literal);
-				$lastbullet = undef;
-			}
-			else {
-				$f->{hasbullet} = $lastbullet;
-				$lastbullet = undef;
-			}
-		}
-		$lastbullet = $f if $f->{isbullet};
-	}
-	if ($lastbullet) {
-		my $literal = ${$lastbullet->{isbullet}};
-		%$lastbullet = (%std_literal, width=>length($literal), src=>\$literal);
-	}
+    # Attach bullets to neighbouring fields,
+    # and compute offsets from left margin...
+    my $offset = 0;
+    my $lastbullet;
+    for my $f (@formatters) {
+        $f->{pos} = $offset;
+        $offset += $f->{width};
+        if ($lastbullet) {
+            if ($f->{literal}) {  # IGNORE IT
+            }
+            elsif ($f->{isbullet}) {
+                my $literal = ${$lastbullet->{isbullet}};
+                %$lastbullet = (%std_literal, width=>length($literal), src=>\$literal);
+                $lastbullet = undef;
+            }
+            else {
+                $f->{hasbullet} = $lastbullet;
+                $lastbullet = undef;
+            }
+        }
+        $lastbullet = $f if $f->{isbullet};
+    }
+    if ($lastbullet) {
+        my $literal = ${$lastbullet->{isbullet}};
+        %$lastbullet = (%std_literal, width=>length($literal), src=>\$literal);
+    }
 
-	return \@formatters;
+    return \@formatters;
 }
 
 sub layout_groups {
-	my @groups;
-	my $i = 0;
-	FORMATTER: for my $f (@_) {
-		$f->{index} = $i++;
-		for my $group (@groups) {
-			if ($f->{src} == $group->[0]{src}) {
-				push @$group, $f;
-				next FORMATTER;
-			}
-		}
-		push @groups, [$f];
-	}
-	return @groups;
+    my @groups;
+    my $i = 0;
+    FORMATTER: for my $f (@_) {
+        $f->{index} = $i++;
+        for my $group (@groups) {
+            if ($f->{src} == $group->[0]{src}) {
+                push @$group, $f;
+                next FORMATTER;
+            }
+        }
+        push @groups, [$f];
+    }
+    return @groups;
 }
 
 sub make_col {
-	my ($f, $opts, $maxheight, $tabular) = @_;
-	$maxheight = min $unlimited,
-					 grep defined(), $maxheight, $f->{opts}{height}{max};
-	my ($str_ref, $width) = @{$f}{qw(src width)};
-	my @col;
-	my ($more, $text) = (1,"");
-	my $bullet = $f->{hasbullet};
-	$bullet->{bullets} = [] if $bullet;
-	my $bulleted = 1;
-	until ($f->{done}) {
-		my $skipped = 0;
-		unless ($f->{isbullet} || $f->{width} == 1 || $f->{verbatim}) {
-			($skipped) = ($$str_ref =~ /\G(\s*)/gc);
-			if ($skipped||=0) {
-				$bulleted = ($skipped =~ /\n/);
-				$skipped=~s/\r\Z//;
-				$skipped = ($skipped=~tr/\r//);
-				push @col, ("") x $skipped;
-				last if $tabular && $bulleted && @col;
-			}
-		}
-		($text,$more,$eol) = $f->{break}->($str_ref,$width,$f->{opts}{ws});
-		if ($f->{opts}{ws}) {
-			$text =~ s{($f->{opts}{ws})}
-					  { @caps = grep { defined $$_ } 2..$#+;
-						@caps = length($1) ? " " : "" unless @caps;
-						join "", @caps;
-					  }ge;
-		}
-		$text .= "\r" if $eol;
-		push @col, $text;
-		if ($bullet && $text =~ /\S/) {
-			push @{$bullet->{bullets}}, ($bullet->{bullethole}) x $skipped;
-			push @{$bullet->{bullets}}, $bulleted ? ${$bullet->{isbullet}}
-												  : $bullet->{bullethole};
-		}
-		$f->{done} = 1
-			if defined $f->{opts}{height}{max} && @col==$f->{opts}{height}{max};
-		last if !$more || @col==$maxheight;
-		$f->{done} = 1 if $f->{line};
-		$bulleted = 0;
-	}
-	@col = () if @col == 1 && $col[0] eq "";
-	$_[3] = $more && !$f->{done} if @_>3;
-	return \@col;
+    my ($f, $opts, $maxheight, $tabular) = @_;
+    $maxheight = min $unlimited,
+                     grep defined(), $maxheight, $f->{opts}{height}{max};
+    my ($str_ref, $width) = @{$f}{qw(src width)};
+    my @col;
+    my ($more, $text) = (1,"");
+    my $bullet = $f->{hasbullet};
+    $bullet->{bullets} = [] if $bullet;
+    my $bulleted = 1;
+    until ($f->{done}) {
+        my $skipped = 0;
+        unless ($f->{isbullet} || $f->{width} == 1 || $f->{verbatim}) {
+            ($skipped) = ($$str_ref =~ /\G(\s*)/gc);
+            if ($skipped||=0) {
+                $bulleted = ($skipped =~ /\n/);
+                $skipped=~s/\r\Z//;
+                $skipped = ($skipped=~tr/\r//);
+                push @col, ("") x $skipped;
+                last if $tabular && $bulleted && @col;
+            }
+        }
+        ($text,$more,$eol) = $f->{break}->($str_ref,$width,$f->{opts}{ws});
+        if ($f->{opts}{ws}) {
+            $text =~ s{($f->{opts}{ws})}
+                      { @caps = grep { defined $$_ } 2..$#+;
+                        @caps = length($1) ? " " : "" unless @caps;
+                        join "", @caps;
+                      }ge;
+        }
+        $text .= "\r" if $eol;
+        push @col, $text;
+        if ($bullet && $text =~ /\S/) {
+            push @{$bullet->{bullets}}, ($bullet->{bullethole}) x $skipped;
+            push @{$bullet->{bullets}}, $bulleted ? ${$bullet->{isbullet}}
+                                                  : $bullet->{bullethole};
+        }
+        $f->{done} = 1
+            if defined $f->{opts}{height}{max} && @col==$f->{opts}{height}{max};
+        last if !$more || @col==$maxheight;
+        $f->{done} = 1 if $f->{line};
+        $bulleted = 0;
+    }
+    @col = () if @col == 1 && $col[0] eq "";
+    $_[3] = $more && !$f->{done} if @_>3;
+    return \@col;
 }
 
 my $count = 0;
 
 sub balance_cols {
-	my ($group, $opts, $maxheight) = @_;
-	my ($first, $src) = ($group->[0], $group->[0]{src});
-	if (@$group<=1) {
-		$first->{formcol} = make_col($first,$opts,$maxheight);
-		return;
-	}
-	my $pos = pos($$src) || 0;
-	my $minheight = 0;
-	while (1) {
-		my @cols;
-		pos($$src) = $pos;
-		my $medheight = int(($maxheight+$minheight+1)/2);
-		for my $f (@$group) {
-			$f->{done} = 0;
-			push @cols, make_col($f,$opts,$medheight)
-		}
-		if ($maxheight <= $minheight+1) {
-			for (0..$#cols) {
-				$group->[$_]{formcol} = $cols[$_];
-			}
-			return;
-		}
-		(substr($$src,pos$$src) =~ /\S/) ? $minheight : $maxheight = $medheight;
-	}
+    my ($group, $opts, $maxheight) = @_;
+    my ($first, $src) = ($group->[0], $group->[0]{src});
+    if (@$group<=1) {
+        $first->{formcol} = make_col($first,$opts,$maxheight);
+        return;
+    }
+    my $pos = pos($$src) || 0;
+    my $minheight = 0;
+    while (1) {
+        my @cols;
+        pos($$src) = $pos;
+        my $medheight = int(($maxheight+$minheight+1)/2);
+        for my $f (@$group) {
+            $f->{done} = 0;
+            push @cols, make_col($f,$opts,$medheight)
+        }
+        if ($maxheight <= $minheight+1) {
+            for (0..$#cols) {
+                $group->[$_]{formcol} = $cols[$_];
+            }
+            return;
+        }
+        (substr($$src,pos$$src) =~ /\S/) ? $minheight : $maxheight = $medheight;
+    }
 }
 
 sub delineate_overflows {
-	for my $formats (@_) {
-		# Is there a block field on the line?
-		next if grep { !(  $_->{line}
-					    || $_->{literal}
-					    || $_->{notlastoverflow}
-					    )
-					 } @$formats;
-		for (@$formats) {
-			next unless $_->{overflow};
-			if ($_->{notlastoverflow}) {
-				$_->{line} = 1;
-			}
-		}
-	}
-	for my $formats (@_) {
-		for (@$formats) {
-			next if !$_->{overflow} || $_->{notlastoverflow};
-			$_->{opts}{height}{max} = $unlimited;
-			$_->{opts}{height}{minimal} = 0;
-		}
-	}
+    for my $formats (@_) {
+        # Is there a block field on the line?
+        next if grep { !(  $_->{line}
+                        || $_->{literal}
+                        || $_->{notlastoverflow}
+                        )
+                     } @$formats;
+        for (@$formats) {
+            next unless $_->{overflow};
+            if ($_->{notlastoverflow}) {
+                $_->{line} = 1;
+            }
+        }
+    }
+    for my $formats (@_) {
+        for (@$formats) {
+            next if !$_->{overflow} || $_->{notlastoverflow};
+            $_->{opts}{height}{max} = $unlimited;
+            $_->{opts}{height}{minimal} = 0;
+        }
+    }
 }
 
 sub resolve_overflows {
-	my ($formatters,$prevformatters) = @_;
-	FORMATTER: for my $fld (@$formatters) {
-		next unless $fld->{overflow};
-		my $left  = $fld->{pos};
-		my $right = $left + $fld->{width} - 1;
-		my $overflowed;
-		for my $prev (@$prevformatters) {
-			next if $prev->{literal};
-			my $prevleft  = $prev->{pos};
-			my $prevright = $prevleft + $prev->{width} - 1;
-			if ($right >= $prevleft && $left <= $prevright) { # overlap
-				if ($overflowed) {
-					$prev->{notlastoverflow} = 1
-						if $prev->{overflow} && $prev->{src} == $fld->{src};
-					next;
-				}
-				my %newfld = ( %$prev, opts=>{}, overflow=>1 );
-				my @keep = qw( width pos complete done line );
-				@newfld{@keep} = @{$fld}{@keep};
-				update %{$newfld{opts}}, %{$fld->{opts}};
-				$newfld{opts}{height} = {min=>0, max=>undef, minimal=>1};
-				$fld = \%newfld;
-				$prev->{notlastoverflow} = 1 if $prev->{overflow};
-				$overflowed = 1;
-			}
-		}
-		croak "Useless overflow field (no field above it)"
-			unless $overflowed;
-	}
+    my ($formatters,$prevformatters) = @_;
+    FORMATTER: for my $fld (@$formatters) {
+        next unless $fld->{overflow};
+        my $left  = $fld->{pos};
+        my $right = $left + $fld->{width} - 1;
+        my $overflowed;
+        for my $prev (@$prevformatters) {
+            next if $prev->{literal};
+            my $prevleft  = $prev->{pos};
+            my $prevright = $prevleft + $prev->{width} - 1;
+            if ($right >= $prevleft && $left <= $prevright) { # overlap
+                if ($overflowed) {
+                    $prev->{notlastoverflow} = 1
+                        if $prev->{overflow} && $prev->{src} == $fld->{src};
+                    next;
+                }
+                my %newfld = ( %$prev, opts=>{}, overflow=>1 );
+                my @keep = qw( width pos complete done line );
+                @newfld{@keep} = @{$fld}{@keep};
+                update %{$newfld{opts}}, %{$fld->{opts}};
+                $newfld{opts}{height} = {min=>0, max=>undef, minimal=>1};
+                $fld = \%newfld;
+                $prev->{notlastoverflow} = 1 if $prev->{overflow};
+                $overflowed = 1;
+            }
+        }
+        croak "Useless overflow field (no field above it)"
+            unless $overflowed;
+    }
 }
 
 sub make_cols($$\@\%$) {
-	my ($formatters,$prevformatters,$parts, $opts, $maxheight) = @_;
-	my (@bullets, @max, @min);
-	for my $f (@$formatters) {
-		if    ($f->{isbullet}) 				{ push @bullets, $f }
-		elsif ($f->{opts}{height}{minimal}) { push @min, $f }
-		else                                { push @max, $f }
-	}
-	my @maxgroups = layout_groups(@max);
-	my @mingroups = layout_groups(@min);
-	my $has_nonminimal = grep {!$_->{literal} && !$_->{line}} @max;
-	if ($opts->{layout} eq 'balanced') { # balanced column-by-column
-		for my $g (@maxgroups) {
-			balance_cols($g,$opts, $maxheight);
-		}
-		$maxheight = max map 0+@{$_->{formcol}||[]}, @$formatters
-			if grep {!$_->{literal} && !$_->{opts}{height}{minimal}} @$formatters; 
-		for my $g (@mingroups) {
-			balance_cols($g, $opts, $maxheight);
-		}
-		for my $f (@$formatters) {
-			push @$parts, $f->{formcol}||$f->{bullets}||[];
-		}
-	}
-	elsif ($opts->{layout} eq 'down') { # column-by-column
-		for my $col (0..$#$formatters) {
-			my $f = $formatters->[$col];
-			next if $f->{isbullet} || $f->{opts}{height}{minimal};
-			$parts->[$col] = make_col($f,$opts, $maxheight);
-		}
-		$maxheight = min $maxheight,
-						 max map { defined() ? scalar @$_ : 0 } @$parts
-			if $has_nonminimal;
-		for my $col (0..$#$formatters) {
-			my $f = $formatters->[$col];
-			next if $f->{isbullet} || !$f->{opts}{height}{minimal};
-			$parts->[$col] = make_col($f,$opts, $maxheight);
-		}
-		for my $col (0..$#$formatters) {
-			my $f = $formatters->[$col];
-			next unless $f->{isbullet};
-			$parts->[$col] = $f->{bullets}||[];
-		}
-	}
-	elsif ($opts->{layout} eq 'across') { # across row-by-row
-		my %incomplete = (first=>1);
-		for (my $row=0;$row<$maxheight && grep {$_} values %incomplete;$row++) {
-			%incomplete = ();
-			for my $col (0..$#$formatters) {
-				$parts->[$col] ||= [];
-			}
-			for my $col (0..$#$formatters) {
-				my $f = $formatters->[$col];
-				next if $f->{isbullet} || $f->{opts}{height}{minimal};
-				next if $f->{line} && $row>0 || $f->{done};
-				my ($str_ref, $width) = @{$f}{qw(src width)};
-				$$str_ref =~ /\G\s+/gc unless $f->{verbatim};
-				($parts->[$col][$row], my $more) =
-						$f->{break}->($str_ref,$width,$f->{opts}{ws});
-				$parts->[$col][$row] =~ s/$f->{opts}{ws}/ /g if $f->{opts}{ws};
-				$f->{done} = 1 if !$f->{literal} 
-						   && $row+1 >= ($f->{opts}{height}{max}||$maxheight);
-				$incomplete{$str_ref} = $more
-					unless $f->{literal} || $f->{line} || $f->{done};
-			}
-			for my $col (0..$#$formatters) {
-				my $f = $formatters->[$col];
-				next if $f->{isbullet} || !$f->{opts}{height}{minimal};
-				next if $f->{line} && $row>0 || $f->{done};
-				my ($str_ref, $width) = @{$f}{qw(src width)};
-				$$str_ref =~ /\G\s+/gc unless $f->{verbatim};
-				($parts->[$col][$row], my $more) =
-						$f->{break}->($str_ref,$width,$f->{opts}{ws});
-				$parts->[$col][$row] =~ s/$f->{opts}{ws}/ /g if $f->{opts}{ws};
-				$f->{done} = 1 if !$f->{literal} 
-						   && $row+1 >= ($f->{opts}{height}{max}||$maxheight);
-				$incomplete{$str_ref} = $more
-					unless $has_nonminimal || $f->{done};
-			}
-			for my $col (0..$#$formatters) {
-				my $f = $formatters->[$col];
-				next unless $f->{isbullet};
-				$parts->[$col][$row] = shift @{$f->{bullets}};
-			}
-		}
-	}
-	else { # tabular layout: down to the first \n, then across, then fill
-		my $finished = 0;
-		for my $col (0..$#$formatters) { $parts->[$col] = []; }
-		while (!$finished) {
-			$finished = 1;
-			for my $col (0..$#$formatters) {
-				my $tabular_more = 1;
-				my $f = $formatters->[$col];
-				next if $f->{isbullet} || $f->{opts}{height}{minimal};
-				push @{$parts->[$col]},
-					 @{make_col($f,$opts, $maxheight, $tabular_more)};
-				$finished &&= !$tabular_more;
-			}
-			my $minimaxheight = min $maxheight,
-							 max map { defined() ? scalar @$_ : 0 } @$parts
-				if $has_nonminimal;
-			for my $col (0..$#$formatters) {
-				my $tabular = 1;
-				my $f = $formatters->[$col];
-				next if $f->{isbullet} || !$f->{opts}{height}{minimal};
-				push @{$parts->[$col]},
-					 @{make_col($f,$opts, $maxheight, $tabular)};
-			}
-			for my $col (0..$#$formatters-1) {
-				my $f = $formatters->[$col];
-				if ($f->{isbullet}) {
-					push @{$parts->[$col]}, @{$f->{bullets}||[]};
-					push @{$parts->[$col]},
-						 ($f->{bullethole})x($minimaxheight-@{$parts->[$col]});
-				}
-				elsif ($f->{literal}) {
-					push @{$parts->[$col]},
-						 (${$f->{src}})x($minimaxheight-@{$parts->[$col]});
-				}
-				else {
-					push @{$parts->[$col]},
-						 ("")x($minimaxheight-@{$parts->[$col]});
-				}
-			}
-			$maxheight -= $minimaxheight||0;
-		}
-	}
-	for my $g (@maxgroups, @mingroups) {
-		my $text = $g->[-1]{src};
-		next if substr($$text,pos($$text)||0) =~ /\S/;
-		for (1..@$g) {
-			next unless @{$parts->[$g->[-$_]{index}]};
-			$g->[-$_]{final} = 1;
-			last;
-		}
-	}
-	for my $i (1..@$parts) {
-		$formatters->[-$i]{complete} = 0
-	}
-	for my $f (grep {!($_->{literal}||$_->{line})} @$formatters) {
-		next if $f->{done} || $f->{isbullet} || $f->{opts}{height}{minimal};
-		return 1 if substr(${$f->{src}},pos(${$f->{src}})||0) =~ /\S/;
-	}
-	return 0;
+    my ($formatters,$prevformatters,$parts, $opts, $maxheight) = @_;
+    my (@bullets, @max, @min);
+    for my $f (@$formatters) {
+        if    ($f->{isbullet})              { push @bullets, $f }
+        elsif ($f->{opts}{height}{minimal}) { push @min, $f }
+        else                                { push @max, $f }
+    }
+    my @maxgroups = layout_groups(@max);
+    my @mingroups = layout_groups(@min);
+    my $has_nonminimal = grep {!$_->{literal} && !$_->{line}} @max;
+    if ($opts->{layout} eq 'balanced') { # balanced column-by-column
+        for my $g (@maxgroups) {
+            balance_cols($g,$opts, $maxheight);
+        }
+        $maxheight = map 0+@{$_->{formcol}||[]}, @$formatters
+            if grep {!$_->{literal} && !$_->{opts}{height}{minimal}} @$formatters;
+        for my $g (@mingroups) {
+            balance_cols($g, $opts, $maxheight);
+        }
+        for my $f (@$formatters) {
+            push @$parts, $f->{formcol}||$f->{bullets}||[];
+        }
+    }
+    elsif ($opts->{layout} eq 'down') { # column-by-column
+        for my $col (0..$#$formatters) {
+            my $f = $formatters->[$col];
+            next if $f->{isbullet} || $f->{opts}{height}{minimal};
+            $parts->[$col] = make_col($f,$opts, $maxheight);
+        }
+        $maxheight = min $maxheight,
+                         max map { defined() ? scalar @$_ : 0 } @$parts
+            if $has_nonminimal;
+        for my $col (0..$#$formatters) {
+            my $f = $formatters->[$col];
+            next if $f->{isbullet} || !$f->{opts}{height}{minimal};
+            $parts->[$col] = make_col($f,$opts, $maxheight);
+        }
+        for my $col (0..$#$formatters) {
+            my $f = $formatters->[$col];
+            next unless $f->{isbullet};
+            $parts->[$col] = $f->{bullets}||[];
+        }
+    }
+    elsif ($opts->{layout} eq 'across') { # across row-by-row
+        my %incomplete = (first=>1);
+        for (my $row=0;$row<$maxheight && grep {$_} values %incomplete;$row++) {
+            %incomplete = ();
+            for my $col (0..$#$formatters) {
+                $parts->[$col] ||= [];
+            }
+            for my $col (0..$#$formatters) {
+                my $f = $formatters->[$col];
+                next if $f->{isbullet} || $f->{opts}{height}{minimal};
+                next if $f->{line} && $row>0 || $f->{done};
+                my ($str_ref, $width) = @{$f}{qw(src width)};
+                $$str_ref =~ /\G\s+/gc unless $f->{verbatim};
+                ($parts->[$col][$row], my $more) =
+                        $f->{break}->($str_ref,$width,$f->{opts}{ws});
+                $parts->[$col][$row] =~ s/$f->{opts}{ws}/ /g if $f->{opts}{ws};
+                $f->{done} = 1 if !$f->{literal}
+                           && $row+1 >= ($f->{opts}{height}{max}||$maxheight);
+                $incomplete{$str_ref} = $more
+                    unless $f->{literal} || $f->{line} || $f->{done};
+            }
+            for my $col (0..$#$formatters) {
+                my $f = $formatters->[$col];
+                next if $f->{isbullet} || !$f->{opts}{height}{minimal};
+                next if $f->{line} && $row>0 || $f->{done};
+                my ($str_ref, $width) = @{$f}{qw(src width)};
+                $$str_ref =~ /\G\s+/gc unless $f->{verbatim};
+                ($parts->[$col][$row], my $more) =
+                        $f->{break}->($str_ref,$width,$f->{opts}{ws});
+                $parts->[$col][$row] =~ s/$f->{opts}{ws}/ /g if $f->{opts}{ws};
+                $f->{done} = 1 if !$f->{literal}
+                           && $row+1 >= ($f->{opts}{height}{max}||$maxheight);
+                $incomplete{$str_ref} = $more
+                    unless $has_nonminimal || $f->{done};
+            }
+            for my $col (0..$#$formatters) {
+                my $f = $formatters->[$col];
+                next unless $f->{isbullet};
+                $parts->[$col][$row] = shift @{$f->{bullets}};
+            }
+        }
+    }
+    else { # tabular layout: down to the first \n, then across, then fill
+        my $finished = 0;
+        for my $col (0..$#$formatters) { $parts->[$col] = []; }
+        while (!$finished) {
+            $finished = 1;
+            for my $col (0..$#$formatters) {
+                my $tabular_more = 1;
+                my $f = $formatters->[$col];
+                next if $f->{isbullet} || $f->{opts}{height}{minimal};
+                push @{$parts->[$col]},
+                     @{make_col($f,$opts, $maxheight, $tabular_more)};
+                $finished &&= !$tabular_more;
+            }
+            my $minimaxheight = min $maxheight,
+                             max map { defined() ? scalar @$_ : 0 } @$parts
+                if $has_nonminimal;
+            for my $col (0..$#$formatters) {
+                my $tabular = 1;
+                my $f = $formatters->[$col];
+                next if $f->{isbullet} || !$f->{opts}{height}{minimal};
+                push @{$parts->[$col]},
+                     @{make_col($f,$opts, $maxheight, $tabular)};
+            }
+            for my $col (0..$#$formatters-1) {
+                my $f = $formatters->[$col];
+                if ($f->{isbullet}) {
+                    push @{$parts->[$col]}, @{$f->{bullets}||[]};
+                    push @{$parts->[$col]},
+                         ($f->{bullethole})x($minimaxheight-@{$parts->[$col]});
+                }
+                elsif ($f->{literal}) {
+                    push @{$parts->[$col]},
+                         (${$f->{src}})x($minimaxheight-@{$parts->[$col]});
+                }
+                else {
+                    push @{$parts->[$col]},
+                         ("")x($minimaxheight-@{$parts->[$col]});
+                }
+            }
+            $maxheight -= $minimaxheight||0;
+        }
+    }
+    for my $g (@maxgroups, @mingroups) {
+        my $text = $g->[-1]{src};
+        next if substr($$text,pos($$text)||0) =~ /\S/;
+        for (1..@$g) {
+            next unless @{$parts->[$g->[-$_]{index}]};
+            $g->[-$_]{final} = 1;
+            last;
+        }
+    }
+    for my $i (1..@$parts) {
+        $formatters->[-$i]{complete} = 0
+    }
+    for my $f (grep {!($_->{literal}||$_->{line})} @$formatters) {
+        next if $f->{done} || $f->{isbullet} || $f->{opts}{height}{minimal};
+        return 1 if substr(${$f->{src}},pos(${$f->{src}})||0) =~ /\S/;
+    }
+    return 0;
 }
 
 sub make_underline {
-	my ($under, $prevline, $nextline) = @_;
-	$under =~ s/(\n*)\z//;
-	my $trail = "$1"|"\n";
-	for my $l ($nextline, $prevline) {
-		$l = join "", map {$_->{literal} ? ${$_->{src}} : '*'x$_->{width} } @$l;
-		$l =~ s{(.)}{$1 =~ /\s/ ? "\0" : "\1"}ges;
-	}
-	$nextline |= $prevline;
-	$nextline =~ s{\0}{ }g;
-	$nextline =~ s{(\cA+)}{my $len=length($1); substr($under x $len,0,$len)}ge;
-	$nextline .= $trail;
-	return [{ %std_literal, width => length($nextline), src => \$nextline }];
+    my ($under, $prevline, $nextline) = @_;
+    $under =~ s/(\n*)\z//;
+    my $trail = "$1"|"\n";
+    for my $l ($nextline, $prevline) {
+        $l = join "", map {$_->{literal} ? ${$_->{src}} : '*'x$_->{width} } @$l;
+        $l =~ s{(.)}{$1 =~ /\s/ ? "\0" : "\1"}ges;
+    }
+    $nextline |= $prevline;
+    $nextline =~ s{\0}{ }g;
+    $nextline =~ s{(\cA+)}{my $len=length($1); substr($under x $len,0,$len)}ge;
+    $nextline .= $trail;
+    return [{ %std_literal, width => length($nextline), src => \$nextline }];
 }
 
 sub linecount($) {
-	return tr/\n// + (/[^\n]\z/?1:0) for @_;
+    return tr/\n// + (/[^\n]\z/?1:0) for @_;
 }
 
 use warnings::register;
 
 sub form is export(:MANDATORY) {
-	croak "Useless call to &form in void context" unless defined wantarray;
-	
-	# Handle formatting calls...
-	my ($package, $file, $line) = caller;
+    croak "Useless call to &form in void context" unless defined wantarray;
+
+    # Handle formatting calls...
+    my ($package, $file, $line) = caller;
     my $caller_opts = $caller_opts{$package,$file} ||= {};
     if (keys %$caller_opts) {
         $line = first { $_ < $line } sort {$b<=>$a} keys %$caller_opts;
@@ -1071,154 +1079,154 @@ sub form is export(:MANDATORY) {
                 if defined $line;
     }
     my %opts = (%def_opts, %$caller_opts);
-	my $fldcnt = 0;
-	my @section = {opts=>{%opts}, text=>[]};
-	my $formats = \@_;
-	my $first = 1;
-	my %argcache;
-	my ($prevformat,$currformat,@allformats);
-	while (@$formats) {
-		my $format = shift @$formats;
-		if (ref $format eq 'HASH') {
-			update %opts, %$format;
-			$opts{page}{number} = undef unless defined $format->{page}{number};
-			push @section, {opts=>{%opts}};
-			redo;
-		}
-		if ($first) { 	# Change format lists if data first or last
-			if ($opts{interleave}) {
-				$formats = [$format =~ /.*(?:\n|\z)/g];
-				$format = shift @$formats;
-			}
-			$first = 0;
-		}
-		$format =~ s/\n?\z/\n/;
-		$prevformat = $currformat;
-		$currformat = segment($format, @_, %opts, $fldcnt, %argcache);
-		resolve_overflows($currformat, $prevformat);
-		if (defined $opts{under}) {
-			push @{$section[-1]{formatters}}, 
-				make_underline($opts{under}, $prevformat, $currformat);
-			$opts{under} = undef;
-		}
-		push @{$section[-1]{formatters}}, $currformat;
-		push @allformats, $currformat;
-	}
-	croak scalar(@_), " too many data values after last format" if @_;
-	delineate_overflows(@allformats);
+    my $fldcnt = 0;
+    my @section = {opts=>{%opts}, text=>[]};
+    my $formats = \@_;
+    my $first = 1;
+    my %argcache;
+    my ($prevformat,$currformat,@allformats);
+    while (@$formats) {
+        my $format = shift @$formats;
+        if (ref $format eq 'HASH') {
+            update %opts, %$format;
+            $opts{page}{number} = undef unless defined $format->{page}{number};
+            push @section, {opts=>{%opts}};
+            redo;
+        }
+        if ($first) {   # Change format lists if data first or last
+            if ($opts{interleave}) {
+                $formats = [$format =~ /.*(?:\n|\z)/g];
+                $format = shift @$formats;
+            }
+            $first = 0;
+        }
+        $format =~ s/\n?\z/\n/;
+        $prevformat = $currformat;
+        $currformat = segment($format, @_, %opts, $fldcnt, %argcache);
+        resolve_overflows($currformat, $prevformat);
+        if (defined $opts{under}) {
+            push @{$section[-1]{formatters}},
+                make_underline($opts{under}, $prevformat, $currformat);
+            $opts{under} = undef;
+        }
+        push @{$section[-1]{formatters}}, $currformat;
+        push @allformats, $currformat;
+    }
+    croak scalar(@_), " too many data values after last format" if @_;
+    delineate_overflows(@allformats);
 
-	my $text = "";
-	my $pagetype = 'first';
-	my $pagenum = 1;
-	for my $section (@section) {
-		next unless $section->{formatters};
-		my $sect_opts = $section->{opts};
-		my $page = $sect_opts->{page};
-		$page->{number} = $pagenum unless defined $page->{number};
-		my $pagelen = $page->{length};
-		while (1) {
-			my $parity = $page->{number}%2 ? 'odd' : 'even';
-			my $header =
-			 $page->{header}{$pagetype} ? $page->{header}{$pagetype}($sect_opts)
-			 : $page->{header}{$parity} ? $page->{header}{$parity}($sect_opts)
-		     : $page->{header}{other}   ? $page->{header}{other}($sect_opts)
-			 : "";
-			my $footer = 
-			 $page->{footer}{$pagetype} ? $page->{footer}{$pagetype}($sect_opts)
-			 : $page->{footer}{$parity} ? $page->{footer}{$parity}($sect_opts)
-			 : $page->{footer}{other}   ? $page->{footer}{other}($sect_opts)
-			 : "";
-			my $feed = 
-			 $page->{feed}{$pagetype} ? $page->{feed}{$pagetype}($sect_opts)
-			 : $page->{feed}{$parity} ? $page->{feed}{$parity}($sect_opts)
-			 : $page->{feed}{other}   ? $page->{feed}{other}($sect_opts)
-			 : "";
-			length and s/\n?\z/\n/ for $header, $footer;  # NOT for $feed 
-			my $bodyfn = $page->{body}{$pagetype}
-					  || $page->{body}{$parity}
-					  || $page->{body}{other}
-					  || \&std_body;
-			my $bodylen = $pagelen - linecount($header) - linecount($footer);
-			my ($pagetext, $more) = make_page($section, $sect_opts, $bodylen);
-			if (!$more && $section == $section[-1]) {
-				my $lastheader =
-					$page->{header}{last} ? $page->{header}{last}($sect_opts)
-							              : $header;
-				my $lastfooter =
-					$page->{footer}{last} ? $page->{footer}{last}($sect_opts)
-							              : $footer;
-				length and s/\n?\z/\n/ for $lastheader, $lastfooter;
-				my $lastlen =
-						$pagelen-linecount($lastheader)-linecount($lastfooter);
-				if (@$pagetext <= $lastlen) {
-					$pagetype = 'last';
-					($header, $footer, $bodylen)
-						= ($lastheader, $lastfooter, $lastlen);
-				    $feed = $page->{feed}{last}($sect_opts)
-						if $page->{feed}{last};
-				    $bodyfn = $page->{body}{last}
-						if $page->{body}{last};
-				}
-			}
-			my $fill = $pagelen < $unlimited ? [("\n") x ($bodylen-@$pagetext)]
-											 : [];
+    my $text = "";
+    my $pagetype = 'first';
+    my $pagenum = 1;
+    for my $section (@section) {
+        next unless $section->{formatters};
+        my $sect_opts = $section->{opts};
+        my $page = $sect_opts->{page};
+        $page->{number} = $pagenum unless defined $page->{number};
+        my $pagelen = $page->{length};
+        while (1) {
+            my $parity = $page->{number}%2 ? 'odd' : 'even';
+            my $header =
+             $page->{header}{$pagetype} ? $page->{header}{$pagetype}($sect_opts)
+             : $page->{header}{$parity} ? $page->{header}{$parity}($sect_opts)
+             : $page->{header}{other}   ? $page->{header}{other}($sect_opts)
+             : "";
+            my $footer =
+             $page->{footer}{$pagetype} ? $page->{footer}{$pagetype}($sect_opts)
+             : $page->{footer}{$parity} ? $page->{footer}{$parity}($sect_opts)
+             : $page->{footer}{other}   ? $page->{footer}{other}($sect_opts)
+             : "";
+            my $feed =
+             $page->{feed}{$pagetype} ? $page->{feed}{$pagetype}($sect_opts)
+             : $page->{feed}{$parity} ? $page->{feed}{$parity}($sect_opts)
+             : $page->{feed}{other}   ? $page->{feed}{other}($sect_opts)
+             : "";
+            length and s/\n?\z/\n/ for $header, $footer;  # NOT for $feed
+            my $bodyfn = $page->{body}{$pagetype}
+                      || $page->{body}{$parity}
+                      || $page->{body}{other}
+                      || \&std_body;
+            my $bodylen = max 1, $pagelen - linecount($header) - linecount($footer);
+            my ($pagetext, $more) = make_page($section, $sect_opts, $bodylen);
+            if (!$more && $section == $section[-1]) {
+                my $lastheader =
+                    $page->{header}{last} ? $page->{header}{last}($sect_opts)
+                                          : $header;
+                my $lastfooter =
+                    $page->{footer}{last} ? $page->{footer}{last}($sect_opts)
+                                          : $footer;
+                length and s/\n?\z/\n/ for $lastheader, $lastfooter;
+                my $lastlen = max 1, $pagelen-linecount($lastheader)-linecount($lastfooter);
+                if (@$pagetext <= $lastlen) {
+                    $pagetype = 'last';
+                    ($header, $footer, $bodylen)
+                        = ($lastheader, $lastfooter, $lastlen);
+                    $feed = $page->{feed}{last}($sect_opts)
+                        if $page->{feed}{last};
+                    $bodyfn = $page->{body}{last}
+                        if $page->{body}{last};
+                }
+            }
+            my $fill = $pagelen < $unlimited ? [("\n") x ($bodylen-@$pagetext)]
+                                             : [];
 
-			my $body = $bodyfn->($pagetext, $fill, \%opts);
+            my $body = $bodyfn->($pagetext, $fill, \%opts);
 
-			$text .= $header . $body . $footer . $feed;
-			$page->{number}++;
-					   
-			# Handle special case of empty last page...
-			last unless $more || $section == $section[-1] && $pagetype ne 'last';
-			$pagetype = $page->{number}%2 ? 'odd' : 'even';
-		}
-		$pagenum = $page->{number};
-	}
+            $text .= $header . $body . $footer . $feed;
+            $page->{number}++;
+
+            # Handle special case of empty last page...
+            last unless $more || $section == $section[-1] && $pagetype ne 'last';
+            $pagetype = $page->{number}%2 ? 'odd' : 'even';
+        }
+        $pagenum = $page->{number};
+    }
 
     $text =~ s/[^\S\n]+\n/\n/g unless $opts{untrimmed};
     return $text;
 }
 
 sub make_page {
-		my ($section, $sect_opts, $bodylen) = @_;
-		my (@text, $more);
-		my ($prevformatters, $formatters);
-		while (@text < $bodylen && @{$section->{formatters}}) {
-			$prevformatters = $formatters;
-			$formatters = $section->{formatters}[0];
-			$more = make_cols($formatters,$prevformatters,my @parts, %$sect_opts, $bodylen-@text);
-			shift @{$section->{formatters}} unless $more;
-			my $maxheight = 0;
-			my $maxwidth = 0;
-			for my $col (0..$#parts) {
-				local $_ = $parts[$col];
-				pop @$_ while @$_ && ! length($_->[-1]);
-				$maxheight = max($maxheight, scalar(@$_), $formatters->[$col]{opts}{height}{min}||0);
-				# $formatters->[$col]{pos} = $maxwidth;
-				# $maxwidth += $formatters->[$col]{width};
-			}
-			for my $col (0..$#parts) {
-				my $f = $formatters->[$col];
-				push @{$parts[$col]}, ("") x (($f->{height}{min}||0)-@{$parts[$col]});
-				my $fopts = $f->{opts};
-				my $tfill = first {defined $_} @{$fopts}{qw(tfill vfill fill)}, " ";
-				my $bfill = first {defined $_} @{$fopts}{qw(bfill vfill fill)}, " ";
-				my $lfill = first {defined $_} @{$fopts}{qw(lfill hfill fill)}, " ";
-				my $rfill = first {defined $_} @{$fopts}{qw(rfill hfill fill)}, " ";
-				$f->{vjust}->($maxheight,$tfill,$bfill,$parts[$col]);
-				for my $row (0..$#{$parts[$col]}) {
-					my $last = $parts[$col][$row] =~ s/\r//;
-					$f->{hjust}->($parts[$col][$row], pre=>$lfill, post=>$rfill,
-								  last=>$last, pos=>$f->{pos},
-								  stretch=>$f->{stretch}, width=>$f->{width},
-								 );
-				}
-			}
-			for my $row (0..$maxheight-1) {
-				push @text, join "",map $parts[$_][$row],0..$#parts;
-			}
-		}
-		return (\@text, $more);
+        my ($section, $sect_opts, $bodylen) = @_;
+        my (@text, $more);
+        my ($prevformatters, $formatters);
+        while (@text < $bodylen && @{$section->{formatters}}) {
+            $prevformatters = $formatters;
+            $formatters = $section->{formatters}[0];
+            $more = make_cols($formatters,$prevformatters,my @parts, %$sect_opts, $bodylen-@text);
+            shift @{$section->{formatters}} unless $more;
+            my $maxheight = 0;
+            my $maxwidth = 0;
+            for my $col (0..$#parts) {
+                local $_ = $parts[$col];
+                pop @$_ while @$_ && ! length($_->[-1]);
+                $maxheight = max($maxheight, scalar(@$_), $formatters->[$col]{opts}{height}{min}||0);
+                # $formatters->[$col]{pos} = $maxwidth;
+                # $maxwidth += $formatters->[$col]{width};
+            }
+            for my $col (0..$#parts) {
+                my $f = $formatters->[$col];
+                push @{$parts[$col]}, ("") x (($f->{height}{min}||0)-@{$parts[$col]});
+                my $fopts = $f->{opts};
+                my $tfill = first {defined $_} @{$fopts}{qw(tfill vfill fill)}, " ";
+                my $bfill = first {defined $_} @{$fopts}{qw(bfill vfill fill)}, " ";
+                my $lfill = first {defined $_} @{$fopts}{qw(lfill hfill fill)}, " ";
+                my $rfill = first {defined $_} @{$fopts}{qw(rfill hfill fill)}, " ";
+                $f->{vjust}->($maxheight,$tfill,$bfill,$parts[$col]);
+                for my $row (0..$#{$parts[$col]}) {
+                    my $last = $parts[$col][$row] =~ s/\r//;
+                    $f->{hjust}->($parts[$col][$row], pre=>$lfill, post=>$rfill,
+                                  last=>$last, pos=>$f->{pos},
+                                  stretch=>$f->{stretch}, width=>$f->{width},
+                                 );
+                }
+            }
+            for my $row (0..$maxheight) {
+                push @text, join "",
+                    grep { defined } map $parts[$_][$row],0..$#parts;
+            }
+        }
+        return (\@text, $more);
 }
 
 # Extract perpendicular cross-sections from an AoA, AoH, HoA, HoH, AoHoA, etc.
@@ -1228,18 +1236,18 @@ sub section {
     $structure = [ values %$structure ] if ref $structure eq 'HASH';
     my @section;
     for my $row ( @$structure ) {
-		local $,=",";
+        local $,=",";
         my $type = ref $row or croak "Too many indices (starting with [@index])";
         if ($type eq 'HASH') {
-			@index = keys %$row unless @index;
+            @index = keys %$row unless @index;
             push @{$section[$_]}, $row->{$index[$_]} for 0..$#index;
         }
         elsif ($type eq 'ARRAY') {
-			@index = (0..$#$row) unless @index;
+            @index = (0..$#$row) unless @index;
             push @{$section[$_]}, $row->[$index[$_]] for 0..$#index;
         }
         else {
-			my $what = ref $structure;
+            my $what = ref $structure;
             croak "Can't drill ", ($what ? lc $what : $structure) , " of $type";
         }
     }
@@ -1248,21 +1256,21 @@ sub section {
 
 sub slice {
     my ($structure, @indices) = @_;
-	return ref eq 'HASH' ? @{$_}{@indices} : @{$_}[@indices] for $structure;
+    return ref eq 'HASH' ? @{$_}{@indices} : @{$_}[@indices] for $structure;
 }
 
 sub vals { return ref eq 'HASH' ? values %$_ : @$_ for $_[0] }
 
 sub drill (\[@%];@) is export {
     my ($structure, @indices) = @_;
-	return $structure unless @indices;
-	my $index = shift @indices;
-	my @section = [ @$index ? slice($structure,@$index) : vals($structure) ];
-	return @section unless @indices;
-	for my $index (@indices) {
-		@section = map {section $_, @$index} @section;
-	}
-	return @section;
+    return $structure unless @indices;
+    my $index = shift @indices;
+    my @section = [ @$index ? slice($structure,@$index) : vals($structure) ];
+    return @section unless @indices;
+    for my $index (@indices) {
+        @section = map {section $_, @$index} @section;
+    }
+    return @section;
 }
 
 sub break_lit {
@@ -1270,8 +1278,8 @@ sub break_lit {
 }
 
 sub break_bullet {
-	my ($src) = @_;
-	my $next = pop @$src || "";
+    my ($src) = @_;
+    my $next = pop @$src || "";
     return ($next,@$src>0,0);
 }
 
@@ -1282,7 +1290,7 @@ sub break_verbatim {
 }
 
 sub break_nl {
-	my ($str) = @_;
+    my ($str) = @_;
     if ($$str =~ m/\G [^\S\n\r]* ([^\n\r]*?) [^\S\r\n]* (?:\r|$)/gcxm)  {
         return ("$1", $$str =~ /\G(?=.*\S)/sgc?1:0, 1);
     }
@@ -1295,90 +1303,90 @@ my $wsnzw = q{ (??{length($^N)?'(?=)':'(?!)'}) };
 
 sub break_at is export {
     my ($hyphen) = @_;
-	my ($lit_hy) = qr/\Q$hyphen\E/;
-    my $hylen = length($hyphen);         
+    my ($lit_hy) = qr/\Q$hyphen\E/;
+    my $hylen = length($hyphen);
     my @ret;
-	return sub {
+    return sub {
         my ($str,$rem,$ws) = @_;
-		my ($last_breakable, $res) = ($rem+1,"", 0);
-		for ($$str) {
-			use re 'eval';
-			while ($rem > 0 && (pos()||0) < length()) {
-				if ($ws && /\G ($ws) $wsnzw/gcx) {
-					my $captured;
-					if ($#+ > 1) { 		# may be extra captures...
-						for (2..$#+) {
-							next unless defined $$_;
-							$captured++;
-							$res .= $$_;
-							$rem -= length $$_;
-						}
-					}
-					unless ($captured) {
-						$res .= $1;
-						$rem--;
-					}
-					$last_breakable = length $res;
-				}
-				elsif ($rem>=$hylen && /\G $lit_hy /gcx) {
-					$res .= $hyphen;
-					$rem -= $hylen;
-					$last_breakable = length $res;
-				}
-				elsif (/\G ((?!$lit_hy)[^\n\r]) /gcx) {
-					$res .= $1;
-					$rem--;
-					$last_breakable = length $res if $res =~ /\s$/;
-				}
-				else { last }
-			}
-			my $reslen = length $res;
-			$ws ||= qr/\s/;
-			unless (/\G (?=$lit_hy|($ws)$wsnzw|\z|\n|\r) /gcx) {
-				if ($last_breakable <= $reslen) {
-					pos() -= $reslen-$last_breakable;
-					substr($res,$last_breakable) = "";
-				}
-				elsif ($reslen > $hylen) {
-					if ($res =~ /\S\S\S{$hylen}$/) {
-						pos() -= $hylen;
-						substr($res,-$hylen) = $hyphen;
-					}
-					elsif ($res =~ s/(\S+)$//) {
-						pos() -= length($1);
-					}
-				}
-			}
-			my $rem = substr($$str, pos $$str);
-			return ($res, $rem=~/\S/?1:0, $rem =~ /^\s*(?:\z|\n|\r)/);
-		}
-	};
+        my ($last_breakable, $res) = ($rem+1,"", 0);
+        for ($$str) {
+            use re 'eval';
+            while ($rem > 0 && (pos()||0) < length()) {
+                if ($ws && /\G ($ws) $wsnzw/gcx) {
+                    my $captured;
+                    if ($#+ > 1) {      # may be extra captures...
+                        for (2..$#+) {
+                            next unless defined $$_;
+                            $captured++;
+                            $res .= $$_;
+                            $rem -= length $$_;
+                        }
+                    }
+                    unless ($captured) {
+                        $res .= $1;
+                        $rem--;
+                    }
+                    $last_breakable = length $res;
+                }
+                elsif ($rem>=$hylen && /\G $lit_hy /gcx) {
+                    $res .= $hyphen;
+                    $rem -= $hylen;
+                    $last_breakable = length $res;
+                }
+                elsif (/\G ((?!$lit_hy)[^\n\r]) /gcx) {
+                    $res .= $1;
+                    $rem--;
+                    $last_breakable = length $res if $res =~ /\s$/;
+                }
+                else { last }
+            }
+            my $reslen = length $res;
+            $ws ||= qr/\s/;
+            unless (/\G (?=$lit_hy|($ws)$wsnzw|\z|\n|\r) /gcx) {
+                if ($last_breakable <= $reslen) {
+                    pos() -= $reslen-$last_breakable;
+                    substr($res,$last_breakable) = "";
+                }
+                elsif ($reslen > $hylen) {
+                    if ($res =~ /\S\S\S{$hylen}$/) {
+                        pos() -= $hylen;
+                        substr($res,-$hylen) = $hyphen;
+                    }
+                    elsif ($res =~ s/(\S+)$//) {
+                        pos() -= length($1);
+                    }
+                }
+            }
+            my $rem = substr($$str, pos $$str);
+            return ($res, $rem=~/\S/?1:0, $rem =~ /^\s*(?:\z|\n|\r)/);
+        }
+    };
 }
 
 sub import {
-	my $class = shift;
-	my ($package, $file, $line) = caller;
-	my %opts;
-	for (@_) {
-		croak "Options for $class must be specified in a hash"
-			unless ref eq 'HASH';
-		update(%opts, %$_, 'croak');
-	}
-	$caller_opts{$package,$file}{$line} = \%opts;
+    my $class = shift;
+    my ($package, $file, $line) = caller;
+    my %opts;
+    for (@_) {
+        croak "Options for $class must be specified in a hash"
+            unless ref eq 'HASH';
+        update(%opts, %$_, 'croak');
+    }
+    $caller_opts{$package,$file}{$line} = \%opts;
 }
 
 package Perl6::Form::Rule::Fail;
 use overload
-	'""'   => sub{ undef },
-	'0+'   => sub{ undef },
-	'bool' => sub{ 0 },
+    '""'   => sub{ undef },
+    '0+'   => sub{ undef },
+    'bool' => sub{ 0 },
 ;
 
 package Perl6::Form::Rule::Okay;
 use overload
-	'""'   => sub{ $_[0][0] },
-	'0+'   => sub{ $_[0][0] },
-	'bool' => sub{ 1 },
+    '""'   => sub{ $_[0][0] },
+    '0+'   => sub{ $_[0][0] },
+    'bool' => sub{ 1 },
 ;
 
 1;
@@ -1410,7 +1418,7 @@ Perl6::Form - Implements the Perl 6 'form' built-in
 
 Formats are Perl 5's mechanism for creating text templates with
 fixed-width fields. Those fields are then filled in using values from
-prespecified package variables. 
+prespecified package variables.
 
 Unlike Perl 5, Perl 6 doesn't have a C<format> keyword. Or the
 associated built-in formatting mechanism. Instead it has a Form.pm
@@ -1423,21 +1431,21 @@ those values into the placeholders specified within each picture string,
 and returns the result:
 
     $text = form
-				 $format_f1,
-					 $datum1, $datum2, $datum3,
-				 $format_f2,
-					 $datum4,
-				 $format_f3,
-					 $datum5;
+                 $format_f1,
+                     $datum1, $datum2, $datum3,
+                 $format_f2,
+                     $datum4,
+                 $format_f3,
+                     $datum5;
 
 So, whereas in Perl 5 we might write:
 
     # Perl 5 code...
 
-    our ($name, $age, $ID, $comments); 
+    our ($name, $age, $ID, $comments);
 
     format STDOUT
-     =================================== 
+     ===================================
     | NAME     |    AGE     | ID NUMBER |
     |----------+------------+-----------|
     | @<<<<<<< | @||||||||| | @>>>>>>>> |
@@ -1455,7 +1463,7 @@ So, whereas in Perl 5 we might write:
 
 in Perl 6 we could write:
 
-	# Perl 6 code...
+    # Perl 6 code...
 
     print form
         " =================================== ",
@@ -1482,7 +1490,7 @@ And both of them would print something like:
     | Talks to self. Seems to be        |
     | overcompensating for inferiority  |
     | complex rooted in post-natal      |
-    | materal rejection due to physical |
+    | maternal rejection due to         |
     | handicap (congenital or perhaps   |
     | the result of premature birth).   |
     | Shows numerous indications of     |
@@ -1507,7 +1515,7 @@ Array data sources must be passed as array references;
 
 =item *
 
-Options specified on the C<use Perl6::Form> line are 
+Options specified on the C<use Perl6::Form> line are
 not (yet) lexically scoped;
 
 =item *
@@ -1519,7 +1527,7 @@ reference to a scalar;
 
 =head2 Formatting jargon
 
-=over 
+=over
 
 =item Format
 
@@ -1532,11 +1540,11 @@ whitespace between them.
 A string that is created by replacing the fields of a format with specific
 I<data> values.  For example, the string that a call to C<form> returns.
 
-=item Field      
+=item Field
 
 A fixed-width slot within a format string, into which I<data> will be formatted.
 
-=item Data      
+=item Data
 
 A string or numeric value (or an array of such values) that is
 interpolated into a format, in order to fill in a particular field.
@@ -1576,7 +1584,7 @@ containing the complete formatted text:
     @texts = ( form($format, *@data1), form($format, *@data2) );  # 2 elems
 
 When called in a void context, C<form> dies, bitterly
-pointing out how useless that is to format something and then just 
+pointing out how useless that is to format something and then just
 throw the result away.
 
 
@@ -1598,7 +1606,7 @@ Each field is enclosed in a pair of braces.
 =item *
 
 Within the braces, left or right angle brackets (C<< < >> or C<< > >>), bars
-(C<|>), and single-quotes (C<'>) indicate various types of single-line fields. 
+(C<|>), and single-quotes (C<'>) indicate various types of single-line fields.
 
 =item *
 
@@ -1628,7 +1636,7 @@ middle of all the lines produced by the complete format.
 
 =item *
 
-An C<_> at the start and/or end of a field indicates the interpolated data 
+An C<_> at the start and/or end of a field indicates the interpolated data
 is to be vertically "bottomed" within the resulting block. That is, the
 text is to be pushed to the bottom of the lines produced by the format.
 
@@ -1738,7 +1746,7 @@ allow numbered or bulleted points:
 
     print "I couldn't do my English Lit homework because...\n\n";
 
-	my $index = 0;
+    my $index = 0;
     for my $reason (@reasons) {
         my $n = @reasons - $index . '.';
         print form "   {>}  {[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[}",
@@ -1750,28 +1758,28 @@ which might produce:
 
     I couldn't do my English Lit homework because...
 
-         10. Three witches told me I was going to be    
-             king.                                      
+         10. Three witches told me I was going to be
+             king.
 
           9. I was busy explaining wherefore am I Romeo.
 
-          8. I was busy scrubbing the blood off my      
-             hands.                                     
+          8. I was busy scrubbing the blood off my
+             hands.
 
-          7. Some dear friends had to charge once more  
-             unto the breach.                           
+          7. Some dear friends had to charge once more
+             unto the breach.
 
-          6. My so-called best friend tricked me into   
-             killing my wife.                           
+          6. My so-called best friend tricked me into
+             killing my wife.
 
-          5. My so-called best friend tricked me into   
-             killing Caesar.                            
+          5. My so-called best friend tricked me into
+             killing Caesar.
 
-          4. My so-called best friend tricked me into   
-             taming a shrew.                            
+          4. My so-called best friend tricked me into
+             taming a shrew.
 
-          3. My uncle killed my father and married my   
-             mother.                                    
+          3. My uncle killed my father and married my
+             mother.
 
           2. I fell in love with my manservant, who was
              actually the disguised twin sister of the
@@ -1780,7 +1788,7 @@ which might produce:
              was wooing her on my behalf whilst secretly
              in love with me.
 
-          1. I was abducted by fairies.                 
+          1. I was abducted by fairies.
 
 
 =head1 Keeping track of what's been formatted
@@ -1795,7 +1803,7 @@ pattern match does.
 And as with a pattern match, by default that updated C<pos> is only
 used internally and B<not> preserved after the call to C<form> is
 finished. So passing a string to C<form> doesn't interfere with any
-other pattern matching or text formatting that we might 
+other pattern matching or text formatting that we might
 subsequently do with that data.
 
 However, sometimes we I<do> want to know how much of our data a call to C<form>
@@ -1892,11 +1900,11 @@ useful when formatting, especially if the data is known to fit within
 the specified width. For example:
 
     print form
-        '-------------------------------------------',   
-        'Name             Score   Time  | Normalized',   
-        '-------------------------------------------',   
+        '-------------------------------------------',
+        'Name             Score   Time  | Normalized',
+        '-------------------------------------------',
         '{[[[[[[[[[[[[}   {III}   {II}  |  {]]].[[} ',
-         @name,           @score, @time,   [map {$score[$_]/$time[$_]} 0..$#score]
+         \@name,          \@score,\@time,  [map {$score[$_]/$time[$_]} 0..$#score]
 
 is a very easy way to produce the table:
 
@@ -1905,7 +1913,7 @@ is a very easy way to produce the table:
     -------------------------------------------
     Thomas Mowbray    88      15   |     5.867
     Richard Scroop    54      13   |     4.154
-    Harry Percy       99      18   |     5.5  
+    Harry Percy       99      18   |     5.5
 
 
 =head2 Justifying fields
@@ -1931,7 +1939,7 @@ wide: C<{|}> and C<{I}>.
 
 Note, however, that the behaviour of centering fields specified this
 way is exactly the same in every respect as the bracket-based versions, so
-we're free to use whichever we prefer. 
+we're free to use whichever we prefer.
 
 Fully justified fields (C<<<<< {<<<<>>>>} >>>>> and C<{[[[[]]]]}>)
 extract a maximal substring and then distribute any padding as evenly as
@@ -1990,7 +1998,7 @@ of places indicated, but only "significant" digits are shown. For example:
     @nums = (1, 1.2, 1.23, 11.234, 111.235, 1.0001);
 
     print form "Thy score be: {]]]].[[}",
-                              \@nums; 
+                              \@nums;
 
 prints:
 
@@ -2011,7 +2019,7 @@ C<form> insists on preserving the specified layout; in particular, the
 position of the decimal point. But it obviously can't just cut off the
 extra high-order digits; that would change the value:
 
-    Thy score be: 23456.78 
+    Thy score be: 23456.78
 
 So, instead, it indicates that the number doesn't fit by filling the
 field with octothorpes (the way many spreadsheets do):
@@ -2023,19 +2031,19 @@ pass a numeric field some data that isn't numeric at all:
 
     my @mixed_data = (1, 2, "three", {4=>5}, "6", "7-Up");
 
-    print form 'Thy score be: {]]]].[[}', 
+    print form 'Thy score be: {]]]].[[}',
                               \@mixed_data;
-                              
+
 
 Unlike Perl itself, C<form> doesn't autoconvert non-numeric values.
 Instead it marks them with another special string, by filling the field with
 question-marks:
 
-    Thy score be:     1.0  
-    Thy score be:     2.0  
+    Thy score be:     1.0
+    Thy score be:     2.0
     Thy score be: ?????.???
     Thy score be: ?????.???
-    Thy score be:     6.0  
+    Thy score be:     6.0
     Thy score be: ?????.???
 
 Note that strings per se aren't a problem E<ndash> C<form> will happily
@@ -2053,12 +2061,12 @@ themselves:
 
 This version would print something like:
 
-    Thy score be:     1.0  
-    Thy score be:     2.0  
-    Thy score be:     0.0  
-    Thy score be:     1.0  
-    Thy score be:     6.0  
-    Thy score be:     7.0  
+    Thy score be:     1.0
+    Thy score be:     2.0
+    Thy score be:     0.0
+    Thy score be:     1.0
+    Thy score be:     6.0
+    Thy score be:     7.0
 
 
 =head2 Decimal markers
@@ -2070,7 +2078,7 @@ we specify a numeric field with a comma between the brackets:
     @les_nums = (1, 1.2, 1.23, 11.234, 111.235, 1.0001);
 
     print form 'Votre score est: {]]]],[[}',
-                                 \@les_nums; 
+                                 \@les_nums;
 
 the call prints:
 
@@ -2084,7 +2092,7 @@ the call prints:
 In fact, C<form> is extremely flexible about the characters
 we're allowed to use as
 a decimal marker: anything except an angle- or square bracket or
-a plus sign is acceptable. 
+a plus sign is acceptable.
 
 As a bonus, C<form> allows us to use the specified decimal marker in
 the I<data> as well as in the format. So this works too:
@@ -2092,7 +2100,7 @@ the I<data> as well as in the format. So this works too:
     @les_nums = ("1", "1,2", "1,23", "11,234", "111,235", "1,0001");
 
     print form 'Vos score est: {]]]],[[}',
-                               \@les_nums; 
+                               \@les_nums;
 
 
 =head2 Negative numbers
@@ -2107,9 +2115,9 @@ up one column of the field's allotted span:
 
 This would print:
 
-    Thy score be:     1.0  
-    Thy score be:    -1.2  
-    Thy score be:     1.23 
+    Thy score be:     1.0
+    Thy score be:    -1.2
+    Thy score be:     1.23
     Thy score be:   -11.234
     Thy score be:   111.235
     Thy score be: #####.###
@@ -2123,12 +2131,12 @@ specification, at the end:
 
 which would then print:
 
-    Thy score be:     1.0   
-    Thy score be:     1.2-  
-    Thy score be:     1.23  
+    Thy score be:     1.0
+    Thy score be:     1.2-
+    Thy score be:     1.23
     Thy score be:    11.234-
-    Thy score be:   111.235 
-    Thy score be: 12345.67- 
+    Thy score be:   111.235
+    Thy score be: 12345.67-
 
 C<form> also understands the common financial usage where negative
 numbers are represented as positive numbers in parentheses. Once again,
@@ -2140,12 +2148,12 @@ end of the field specification):
 
 and C<form> obliges:
 
-    Thy dividend be:      1.0   
-    Thy dividend be:     (1.2)  
-    Thy dividend be:      1.23  
+    Thy dividend be:      1.0
+    Thy dividend be:     (1.2)
+    Thy dividend be:      1.23
     Thy dividend be:    (11.234)
-    Thy dividend be:    111.235 
-    Thy dividend be: (12345.67) 
+    Thy dividend be:    111.235
+    Thy dividend be: (12345.67)
 
 Note that the parens have to go I<inside> the field's braces. Otherwise,
 they're just literal parts of the format string.
@@ -2168,9 +2176,9 @@ to produce:
 
     Brittannic      Continental     Subcontinental   Tyrolean        Asiatic
     _____________   _____________   ______________   _____________   _____________
-             0.0             0,0              0.0             0,0             0.0 
-             1.0             1,0              1.0             1,0             1.0 
-             1.1             1,1              1.1             1,1             1.1 
+             0.0             0,0              0.0             0,0             0.0
+             1.0             1,0              1.0             1,0             1.0
+             1.1             1,1              1.1             1,1             1.1
              1.23            1,23             1.23            1,23            1.23
          4,567.89        4.567,89         4,567.89        4'567,89         4567.89
         34,567.89       34.567,89        34,567.89       34'567,89       3,4567.89
@@ -2190,16 +2198,38 @@ to produce:
 
     Hyperspatial
     _____________
-             0:0 
-             1:0 
-             1:1 
+             0:0
+             1:0
+             1:1
              1:23
          4 567:89
         34 567:89
        234 567:89
      1 234 567:89
 
+You can also put separators in a regular C<{>>>>>>>}> or C<{]]]]]]]}> field,
+to print integers with (say) commas:
 
+    print form
+        "Integral",
+        "___________",
+        "{]],]]],]]}",
+         \@nums;
+
+which produces:
+
+    Integral
+    ___________
+              0
+              1
+              1
+              1
+          4,568
+         34,568
+        234,568
+      1,234,568
+
+Notice that the numbers are still rounded; in this case, to integers.
 
 
 =head1 Locale-specific numeric formatting
@@ -2214,9 +2244,9 @@ example, if we wrote:
 
     @nums = ( 1, -1.2,  1.23, -11.234,  111.235, -12345.67);
 
-    print form 
+    print form
             "{],]]],]]].[[}",
-            \@nums; 
+            \@nums;
 
 then we'd get:
 
@@ -2232,7 +2262,7 @@ wherever the program was run. But if we had written:
     print form
             {locale=>1},
             "{],]]],]]].[[}",
-            \@nums; 
+            \@nums;
 
 then we'd get:
 
@@ -2251,7 +2281,7 @@ or:
          11,23-
         111,235
      12.345,67-
-  
+
 or:
 
           1,0
@@ -2294,7 +2324,7 @@ formats it that way. For example:
     );
 
     for my $nationality (keys %format) {
-		my $layout = $format{$nationality};
+        my $layout = $format{$nationality};
         print form "$nationality:",
                    "    $layout",
                         \@amounts,
@@ -2304,64 +2334,64 @@ formats it that way. For example:
 produces:
 
     Swiss:
-                  Sfr 0.0 
-                  Sfr 1.0 
+                  Sfr 0.0
+                  Sfr 1.0
                   Sfr 1.23
               Sfr 1'234.56
              Sfr -1'234.56
           Sfr 1'234'567.89
 
     Canadian (French):
-                      0,0 $ 
-                      1,0 $ 
+                      0,0 $
+                      1,0 $
                       1,23 $
                   1 234,56 $
                  -1 234,56 $
               1 234 567,89 $
 
     Dutch:
-                      0.0EUR  
-                      1.0EUR  
-                      1.23EUR 
-                  1,234.56EUR 
+                      0.0EUR
+                      1.0EUR
+                      1.23EUR
+                  1,234.56EUR
                   1,234.56-EUR
-              1,234,567.89EUR 
+              1,234,567.89EUR
 
     Norwegian:
-                   kr 0,0 
-                   kr 1,0 
+                   kr 0,0
+                   kr 1,0
                    kr 1,23
                kr 1.234,56
               kr -1.234,56
            kr 1.234.567,89
 
     German (pre-euro):
-                      0,0DM 
-                      1,0DM 
+                      0,0DM
+                      1,0DM
                       1,23DM
                   1.234,56DM
                  -1.234,56DM
               1.234.567,89DM
 
     Indian:
-                      0.0 Rs 
-                      1.0 Rs 
+                      0.0 Rs
+                      1.0 Rs
                       1.23 Rs
                   1,234.56 Rs
                  -1,234.56 Rs
               12,34,567.89 Rs
 
     Portuguese (pre-euro):
-                      0$0 Esc 
-                      1$0 Esc 
+                      0$0 Esc
+                      1$0 Esc
                       1$23 Esc
                   1.234$56 Esc
                  -1.234$56 Esc
               1.234.567$89 Esc
 
     Canadian (English):
-                     $0.0 
-                     $1.0 
+                     $0.0
+                     $1.0
                      $1.23
                  $1,234.56
                 -$1,234.56
@@ -2401,20 +2431,20 @@ formatted, we really don't want to interpolate it into a left-justified field:
 
 Because that would squash our lovely helix:
 
-    Men at  some  time  are  masters  of  their       G==C             
-    fates: / the fault, dear Brutus, is not  in       A==T             
-    our genes, / but in ourselves, that we  are       T=A              
-    underlings.  /  Brutus  and  Caesar:   what       A=T              
-    should be in that 'Caesar'?  /  Why  should       T==A             
-    that DNA be sequenced more  than  yours?  /       G===C            
-    Extract them together, yours is as  fair  a       T==A             
-    genome; / transcribe them, it  doth  become       C=G              
-    mRNA as well; / recombine them,  it  is  as       TA               
-    long; clone with 'em, / Brutus will start a       AT               
-    twin as soon as Caesar. / Now, in the names       A=T              
-    of all  the  gods  at  once,  /  upon  what       T==A             
-    proteins doth our Caesar feed, / that he is       G===C            
-    grown so great?                                   T==A             
+    Men at  some  time  are  masters  of  their       G==C
+    fates: / the fault, dear Brutus, is not  in       A==T
+    our genes, / but in ourselves, that we  are       T=A
+    underlings.  /  Brutus  and  Caesar:   what       A=T
+    should be in that 'Caesar'?  /  Why  should       T==A
+    that DNA be sequenced more  than  yours?  /       G===C
+    Extract them together, yours is as  fair  a       T==A
+    genome; / transcribe them, it  doth  become       C=G
+    mRNA as well; / recombine them,  it  is  as       TA
+    long; clone with 'em, / Brutus will start a       AT
+    twin as soon as Caesar. / Now, in the names       A=T
+    of all  the  gods  at  once,  /  upon  what       T==A
+    proteins doth our Caesar feed, / that he is       G===C
+    grown so great?                                   T==A
 
 
 Nor would right-, full-, centre- or numeric- justification help in this
@@ -2437,20 +2467,20 @@ And that's precisely what we needed for our diagram:
 
 to produce:
 
-    Men at  some  time  are  masters  of  their          G==C          
-    fates: / the fault, dear Brutus, is not  in            A==T        
-    our genes, / but in ourselves, that we  are              T=A       
-    underlings.  /  Brutus  and  Caesar:   what              A=T       
-    should be in that 'Caesar'?  /  Why  should            T==A        
-    that DNA be sequenced more  than  yours?  /          G===C         
-    Extract them together, yours is as  fair  a         T==A           
-    genome; / transcribe them, it  doth  become        C=G             
-    mRNA as well; / recombine them,  it  is  as       TA               
-    long; clone with 'em, / Brutus will start a       AT               
-    twin as soon as Caesar. / Now, in the names        A=T             
-    of all  the  gods  at  once,  /  upon  what         T==A           
-    proteins doth our Caesar feed, / that he is           G===C        
-    grown so great?                                         T==A       
+    Men at  some  time  are  masters  of  their          G==C
+    fates: / the fault, dear Brutus, is not  in            A==T
+    our genes, / but in ourselves, that we  are              T=A
+    underlings.  /  Brutus  and  Caesar:   what              A=T
+    should be in that 'Caesar'?  /  Why  should            T==A
+    that DNA be sequenced more  than  yours?  /          G===C
+    Extract them together, yours is as  fair  a         T==A
+    genome; / transcribe them, it  doth  become        C=G
+    mRNA as well; / recombine them,  it  is  as       TA
+    long; clone with 'em, / Brutus will start a       AT
+    twin as soon as Caesar. / Now, in the names        A=T
+    of all  the  gods  at  once,  /  upon  what         T==A
+    proteins doth our Caesar feed, / that he is           G===C
+    grown so great?                                         T==A
 
 Note that, unlike other types of fields, verbatim fields don't
 L<break and wrap their data|"A man may break a word with you, sir...">
@@ -2463,43 +2493,43 @@ the appropriate field width. So a too-short verbatim field:
 
 results in gene slicing:
 
-    Men at  some  time  are  masters  of  their          G==C 
+    Men at  some  time  are  masters  of  their          G==C
     fates: / the fault, dear Brutus, is not  in            A==
     our genes, / but in ourselves, that we  are              T
     underlings.  /  Brutus  and  Caesar:   what              A
     should be in that 'Caesar'?  /  Why  should            T==
     that DNA be sequenced more  than  yours?  /          G===C
-    Extract them together, yours is as  fair  a         T==A  
-    genome; / transcribe them, it  doth  become        C=G    
-    mRNA as well; / recombine them,  it  is  as       TA      
-    long; clone with 'em, / Brutus will start a       AT      
-    twin as soon as Caesar. / Now, in the names        A=T    
-    of all  the  gods  at  once,  /  upon  what         T==A  
+    Extract them together, yours is as  fair  a         T==A
+    genome; / transcribe them, it  doth  become        C=G
+    mRNA as well; / recombine them,  it  is  as       TA
+    long; clone with 'em, / Brutus will start a       AT
+    twin as soon as Caesar. / Now, in the names        A=T
+    of all  the  gods  at  once,  /  upon  what         T==A
     proteins doth our Caesar feed, / that he is           G===
     grown so great?                                         T=
 
 rather than teratogenesis:
 
-    Men at  some  time  are  masters  of  their          G==C 
+    Men at  some  time  are  masters  of  their          G==C
     fates: / the fault, dear Brutus, is not  in            A=-
-    our genes, / but in ourselves, that we  are       =T      
+    our genes, / but in ourselves, that we  are       =T
     underlings.  /  Brutus  and  Caesar:   what              -
-    should be in that 'Caesar'?  /  Why  should       T=A     
+    should be in that 'Caesar'?  /  Why  should       T=A
     that DNA be sequenced more  than  yours?  /              -
-    Extract them together, yours is as  fair  a       A=T     
+    Extract them together, yours is as  fair  a       A=T
     genome; / transcribe them, it  doth  become            T=-
-    mRNA as well; / recombine them,  it  is  as       =A      
+    mRNA as well; / recombine them,  it  is  as       =A
     long; clone with 'em, / Brutus will start a          G===C
-    twin as soon as Caesar. / Now, in the names         T==A  
-    of all  the  gods  at  once,  /  upon  what        C=G    
-    proteins doth our Caesar feed, / that he is       TA      
-    grown so great?                                  AT      
-                                                   A=T    
-                                                    T==A  
+    twin as soon as Caesar. / Now, in the names         T==A
+    of all  the  gods  at  once,  /  upon  what        C=G
+    proteins doth our Caesar feed, / that he is       TA
+    grown so great?                                  AT
+                                                   A=T
+                                                    T==A
                                                       G==-
-                                                  =C      
+                                                  =C
                                                         T-
-                                                  ==A     
+                                                  ==A
 
 
 =head1 Overflow fields
@@ -2510,35 +2540,35 @@ containing a summary or discussion of the other data. For example,
 we might want to produce recipes of the form:
 
     =================[  Hecate's Broth of Ambition  ]=================
-                                                                      
-      Preparation time:             Method:                           
-         66.6 minutes                  Remove the legs from the       
-                                       lizard, the wings from the     
-      Serves:                          owlet, and the tongue of the   
-         2 doomed souls                adder. Set them aside.         
-                                       Refrigerate the remains (they  
-      Ingredients:                     can be used to make a lovely   
-         2 snakes (1 fenny, 1          white-meat stock). Drain the   
-         adder)                        newts' eyes if using pickled.  
-         2 lizards (1 legless,         Wrap the toad toes in the      
-         1 regular)                    bat's wool and immerse in half 
-         3 eyes of newt (fresh         a pint of vegan stock in       
-         or pickled)                   bottom of a preheated          
-         2 toad toes (canned           cauldron. (If you can't get a  
-         are fine)                     fresh vegan for the stock, a   
-         2 cups of bat's wool          cup of boiling water poured    
-         1 dog tongue                  over a vegetarian holding a    
-         1 common or spotted           sprouted onion will do). Toss  
-         owlet                         in the fenny snake, then the   
-                                       legless lizard. Puree the      
-                                       tongues together and fold      
-                                       gradually into the mixture,    
-                                       stirring widdershins at all   
-                                       times.  Allow to bubble for 45 
-                                       minutes then decant into two   
-                                       tarnished copper chalices.         
-                                       Garnish each with an owlet     
-                                       wing, and serve immediately.   
+
+      Preparation time:             Method:
+         66.6 minutes                  Remove the legs from the
+                                       lizard, the wings from the
+      Serves:                          owlet, and the tongue of the
+         2 doomed souls                adder. Set them aside.
+                                       Refrigerate the remains (they
+      Ingredients:                     can be used to make a lovely
+         2 snakes (1 fenny, 1          white-meat stock). Drain the
+         adder)                        newts' eyes if using pickled.
+         2 lizards (1 legless,         Wrap the toad toes in the
+         1 regular)                    bat's wool and immerse in half
+         3 eyes of newt (fresh         a pint of vegan stock in
+         or pickled)                   bottom of a preheated
+         2 toad toes (canned           cauldron. (If you can't get a
+         are fine)                     fresh vegan for the stock, a
+         2 cups of bat's wool          cup of boiling water poured
+         1 dog tongue                  over a vegetarian holding a
+         1 common or spotted           sprouted onion will do). Toss
+         owlet                         in the fenny snake, then the
+                                       legless lizard. Puree the
+                                       tongues together and fold
+                                       gradually into the mixture,
+                                       stirring widdershins at all
+                                       times.  Allow to bubble for 45
+                                       minutes then decant into two
+                                       tarnished copper chalices.
+                                       Garnish each with an owlet
+                                       wing, and serve immediately.
 
 
 There are several ways to achieve that effect. The most obvious is to
@@ -2558,7 +2588,7 @@ with a pair of verbatim fields:
                     '   {[[[[[[[[[[[[[[[[[[[[[[[[[[[[}',
                         $method;
 
-    print form 
+    print form
         '=================[ {||||||||||||||||||||||||||} ]=================',
                                       $recipe,
         '                                                                  ',
@@ -2568,7 +2598,7 @@ with a pair of verbatim fields:
 
 We could even chain the calls to C<form> to eliminate the interim variables:
 
-    print form 
+    print form
         '=================[ {||||||||||||||||||||||||||} ]=================',
                                       $recipe,
         '                                                                  ',
@@ -2593,7 +2623,7 @@ ungainly for regular use. A cleaner, more maintainable solution is
 use a single format and just build the method column up
 piecemeal, like so:
 
-    print form 
+    print form
         '=================[ {||||||||||||||||||||||||||} ]=================',
                                       $recipe,
         '                                                                  ',
@@ -2636,7 +2666,7 @@ fields don't require a separate data source of their own.
 Using overflow fields, we could rewrite our quotation generator
 like this:
 
-    print form 
+    print form
         '=================[ {||||||||||||||||||||||||||} ]=================',
                                       $recipe,
         '                                                                  ',
@@ -2646,7 +2676,7 @@ like this:
         '                                   {VVVVVVVVVVVVVVVVVVVVVVVVVVVV} ',
         'Serves:                            {VVVVVVVVVVVVVVVVVVVVVVVVVVVV} ',
         '   {<<<<<<<<<<<<<<<<<<<<}          {VVVVVVVVVVVVVVVVVVVVVVVVVVVV} ',
-            $serves,                        
+            $serves,
         '                                   {VVVVVVVVVVVVVVVVVVVVVVVVVVVV} ',
         'Ingredients:                       {VVVVVVVVVVVVVVVVVVVVVVVVVVVV} ',
         '   {[[[[[[[[[[[[[[[[[[[[}          {VVVVVVVVVVVVVVVVVVVVVVVVVVVV} ',
@@ -2689,7 +2719,7 @@ we'd get:
     his   wrinkled                             front;  /   And
     now,   instead                             of     mounting
     barded  steeds                             / To fright the
-    souls       of                             fearful        
+    souls       of                             fearful
     adversaries, /                             He       capers
     nimbly  in   a                             lady's chamber.
 
@@ -2699,7 +2729,7 @@ data in C<$speech>, leaving nothing for the final format. Then
 the advertisement will be centred on the two resulting columns of text.
 
 But, block overflow fields are different.
-They only take as many lines as are required to 
+They only take as many lines as are required to
 fill the lines generated by the non-overflow fields in their format.
 So, if we changed our code to use overflows:
 
@@ -2748,46 +2778,46 @@ the C<{VVVVVVVVV}> fields in:
         "                  Biography:                           ",
         "Status:             {<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<}", $bio,
         "  {[[[[[[[[[[[[}    {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}", $status,
-        "                    {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}", 
+        "                    {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}",
         "Comments:           {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}",
         "  {[[[[[[[[[[[}     {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}", $comments;
 
 only consume as much of the overflowing C<$bio> field as necessary,
 the result is something like:
 
-    Name:                                                  
-      William                                             
-      Shakespeare                                         
-                      Biography:                          
-    Status:             William Shakespeare was born on    
-      Deceased (1564    April 23, 1564 in Strathford-upon- 
-      -1616)            Avon, England; he was third of     
-                        eight children from Father John    
-    Comments:           Shakespeare and Mother Mary Arden. 
-      Theories          Shakespeare began his education at 
-      abound as to      the age of seven when he probably  
-      the true          attended the Strathford grammar    
-      author of his     school. The school provided        
-      plays. The        Shakespeare with his formal        
-      prime             education. The students chiefly    
-      alternative       studied Latin rhetoric, logic, and 
-      candidates        literature. His knowledge and      
-      being Sir         imagination may have come from his 
-      Francis           reading of ancient authors and     
-      Bacon,            poetry. In November 1582,          
-      Christopher       Shakespeare received a license to  
+    Name:
+      William
+      Shakespeare
+                      Biography:
+    Status:             William Shakespeare was born on
+      Deceased (1564    April 23, 1564 in Strathford-upon-
+      -1616)            Avon, England; he was third of
+                        eight children from Father John
+    Comments:           Shakespeare and Mother Mary Arden.
+      Theories          Shakespeare began his education at
+      abound as to      the age of seven when he probably
+      the true          attended the Strathford grammar
+      author of his     school. The school provided
+      plays. The        Shakespeare with his formal
+      prime             education. The students chiefly
+      alternative       studied Latin rhetoric, logic, and
+      candidates        literature. His knowledge and
+      being Sir         imagination may have come from his
+      Francis           reading of ancient authors and
+      Bacon,            poetry. In November 1582,
+      Christopher       Shakespeare received a license to
       Marlowe, or       marry Anne Hathaway. At the time of
-      Edward de         their marriage, Shakespeare was 18 
+      Edward de         their marriage, Shakespeare was 18
       Vere              years old and Anne was 26. They had
                         three children, the oldest Susanna,
-                        and twins- a boy, Hamneth, and a   
-                        girl, Judith. Before his death on    
-                        April 23 1616, William Shakespeare 
-                        had written thirty-seven plays. He 
-                        is generally considered the        
-                        greatest playwright the world has  
-                        ever known and has always been the 
-                        world's most popular author.       
+                        and twins- a boy, Hamneth, and a
+                        girl, Judith. Before his death on
+                        April 23 1616, William Shakespeare
+                        had written thirty-seven plays. He
+                        is generally considered the
+                        greatest playwright the world has
+                        ever known and has always been the
+                        world's most popular author.
 
 If C<{VVVVVVVVVVV}> fields ate their entire data E<ndash> the way
 C<{[[[[[[[[[}> or C<{IIIIIIIIII}> fields do E<ndash> then the output would be
@@ -2795,56 +2825,56 @@ much less satisfactory. The first block overflow field for C<$bio> would
 have to consume the entire biography, before the comments field was even
 reached. So our output would be something like:
 
-    Name:                                                                
-      William                                                
-      Shakespeare                                            
-                      Biography:                          
-    Status:             William Shakespeare was born on    
-      Deceased (1564    April 23, 1564 in Strathford-upon- 
-      -1616)            Avon, England; he was third of     
-                        eight children from Father John    
-                        Shakespeare and Mother Mary Arden. 
-                        Shakespeare began his education at 
-                        the age of seven when he probably  
-                        attended the Strathford grammar    
-                        school. The school provided        
-                        Shakespeare with his formal        
-                        education. The students chiefly    
-                        studied Latin rhetoric, logic, and 
-                        literature. His knowledge and      
-                        imagination may have come from his 
-                        reading of ancient authors and     
-                        poetry. In November 1582,          
-                        Shakespeare received a license to  
+    Name:
+      William
+      Shakespeare
+                      Biography:
+    Status:             William Shakespeare was born on
+      Deceased (1564    April 23, 1564 in Strathford-upon-
+      -1616)            Avon, England; he was third of
+                        eight children from Father John
+                        Shakespeare and Mother Mary Arden.
+                        Shakespeare began his education at
+                        the age of seven when he probably
+                        attended the Strathford grammar
+                        school. The school provided
+                        Shakespeare with his formal
+                        education. The students chiefly
+                        studied Latin rhetoric, logic, and
+                        literature. His knowledge and
+                        imagination may have come from his
+                        reading of ancient authors and
+                        poetry. In November 1582,
+                        Shakespeare received a license to
                         marry Anne Hathaway. At the time of
-                        their marriage, Shakespeare was 18 
+                        their marriage, Shakespeare was 18
                         years old and Anne was 26. They had
                         three children, the oldest Susanna,
-                        and twins- a boy, Hamneth, and a   
-                        girl, Judith. Before his death on  
-                        April 23 1616, William Shakespeare 
-                        had written thirty-seven plays. He 
-                        is generally considered the        
-                        greatest playwright the world has  
-                        ever known and has always been the 
-                        world's most popular author.       
-                                                   
-    Comments:                                               
-      Theories                                               
-      abound as to                                           
-      the true                                               
-      author of his                                          
-      plays. The                                             
-      prime                                                  
-      alternative                                            
-      candidates                                             
-      being Sir                                              
-      Francis                                                
-      Bacon,                                                 
-      Christopher                                            
-      Marlowe, or                                            
-      Edward de                                              
-      Vere                                                   
+                        and twins- a boy, Hamneth, and a
+                        girl, Judith. Before his death on
+                        April 23 1616, William Shakespeare
+                        had written thirty-seven plays. He
+                        is generally considered the
+                        greatest playwright the world has
+                        ever known and has always been the
+                        world's most popular author.
+
+    Comments:
+      Theories
+      abound as to
+      the true
+      author of his
+      plays. The
+      prime
+      alternative
+      candidates
+      being Sir
+      Francis
+      Bacon,
+      Christopher
+      Marlowe, or
+      Edward de
+      Vere
 
 Which is precisely why C<{VVVVVVVVVVV}> fields don't work that way.
 
@@ -2934,7 +2964,7 @@ For example, if we always wanted to break at the exact width of the field
 (with no hyphens), we could do that with:
 
     sub break_width {
-		my ($data_ref, $width, $ws) = @_;
+        my ($data_ref, $width, $ws) = @_;
         for ($$data_ref) {
             # Treat any squeezed or vertical whitespace as a single character
             # (since they'll subsequently be squeezed to a single space)
@@ -2953,7 +2983,7 @@ For example, if we always wanted to break at the exact width of the field
             return ($result, $more);
         }
     }
-    
+
     print form
         {break=>\&break_width},
         "|{[[[[[}|",
@@ -2974,23 +3004,23 @@ producing:
 Or we might prefer to break on every single whitespace-separated word:
 
     sub break_word {
-		my ($data_ref, $width, $ws) = @_;
+        my ($data_ref, $width, $ws) = @_;
         for ($$data_ref) {
             # Locate the next word (no longer than $width cols)
             my $found = m/\G \s* (\S{1,$width}) /gcx;
 
             # Fail if no more words...
             return ("", 0) unless $found;
-			my $word = $1;
+            my $word = $1;
 
             # Check for any more data still to come...
             my bool $more = m/\G (?= .* \S) /gcx;
 
-            # Otherwise, return broken text and "more" flag... 
+            # Otherwise, return broken text and "more" flag...
             return ($word, $more);
         }
     }
-    
+
     print form
         {break=>\&break_word},
         "|{[[[[[}|",
@@ -3037,7 +3067,7 @@ which it is to be fitted. Like so:
                              $bio,
         "  {[[[[[[[[[[[[}    {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}",
            $status,
-        "                    {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}", 
+        "                    {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}",
         "Comments:           {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}",
         "  {[[[[[[[[[[[}     {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}",
            $comments;
@@ -3057,7 +3087,7 @@ to the right of the formats:
         "                  Biography:                           ",
         "Status:             {<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<}", $bio,
         "  {[[[[[[[[[[[[}    {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}", $status,
-        "                    {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}", 
+        "                    {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}",
         "Comments:           {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}",
         "  {[[[[[[[[[[[}     {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}", $comments;
 
@@ -3077,7 +3107,7 @@ variables (or hash accesses) and then sprinkle them through the formats:
         "                  Biography:                           ",
         "Status:             {<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<}",$person{biog},
         "  {[[[[[[[[[[[[}    {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}",$person{stat},
-        "                    {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}", 
+        "                    {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}",
         "Comments:           {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}",
         "  {[[[[[[[[[[[}     {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}",$person{comm};
 
@@ -3089,15 +3119,15 @@ conjunction with a heredoc, since that's the easiest way to specify a
 multi-line string in Perl:
 
     print form {interleave=>1}, <<'EOFORMAT',
-	Name:                                                 
-	  {[[[[[[[[[[[[}                                      
-	 				  Biography:                          
-	Status:             {<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<}
-	  {[[[[[[[[[[[[}    {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
-					    {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
-	Comments:           {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
-	  {[[[[[[[[[[[}     {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
-	EOFORMAT
+    Name:
+      {[[[[[[[[[[[[}
+                      Biography:
+    Status:             {<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<}
+      {[[[[[[[[[[[[}    {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
+                        {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
+    Comments:           {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
+      {[[[[[[[[[[[}     {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
+    EOFORMAT
          @person{qw( name biog stat comm )};
 
 When C<interleave> is in effect, C<form> grabs the first string
@@ -3122,22 +3152,22 @@ like this:
 
     print form
          <<'EOFORMAT',
-	Name:    {[[[[[[[[[[[[[[[}   Role: {[[[[[[[[[[}
-	Address: {[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[}
-	_______________________________________________
-	EOFORMAT
-         @names, @roles, @addresses;
+    Name:    {[[[[[[[[[[[[[[[}   Role: {[[[[[[[[[[}
+    Address: {[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[}
+    _______________________________________________
+    EOFORMAT
+         \@names, \@roles, \@addresses;
 
 would normally produce this:
 
-    Name:    King Lear           Role: Protagonist 
-    Address: The Cliffs, Dover                     
+    Name:    King Lear           Role: Protagonist
+    Address: The Cliffs, Dover
     _______________________________________________
     Name:    The Three Witches   Role: Plot devices
-    Address: Dismal Forest, Scotland               
+    Address: Dismal Forest, Scotland
     _______________________________________________
-    Name:    Iago                Role: Villain     
-    Address: Casa d'Otello, Venezia               
+    Name:    Iago                Role: Villain
+    Address: Casa d'Otello, Venezia
     _______________________________________________
 
 because the entire three-line format is repeatedly filled in
@@ -3148,29 +3178,29 @@ interleave the data coming after the format, like so:
 
     print form {interleave=>1},
          <<'EOFORMAT',
-	Name:    {[[[[[[[[[[[[[[[}   Role: {[[[[[[[[[[}
-	Address: {[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[}
-	_______________________________________________
-	EOFORMAT
-         @names, @roles, @addresses;
+    Name:    {[[[[[[[[[[[[[[[}   Role: {[[[[[[[[[[}
+    Address: {[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[}
+    _______________________________________________
+    EOFORMAT
+         \@names, \@roles, \@addresses;
 
 then the call produces:
 
-    Name:    King Lear           Role: Protagonist 
+    Name:    King Lear           Role: Protagonist
     Name:    The Three Witches   Role: Plot devices
-    Name:    Iago                Role: Villain     
-    Address: The Cliffs, Dover                     
-    Address: Dismal Forest, Scotland               
-    Address: Casa d'Otello, Venezia               
+    Name:    Iago                Role: Villain
+    Address: The Cliffs, Dover
+    Address: Dismal Forest, Scotland
+    Address: Casa d'Otello, Venezia
     _______________________________________________
 
 because that second version is really equivalent to:
 
     print form
          "Name:    {[[[[[[[[[[[[[[[}   Role: {[[[[[[[[[[}",
-                   @names,                   @roles,
+                   \@names,                  \@roles,
          "Address: {[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[}",
-                   @addresses,
+                   \@addresses,
          "_______________________________________________";
 
 
@@ -3183,7 +3213,7 @@ effect we want.
 =head2 Layout control
 
 As we saw earlier, with follow-on fields and overflow fields, C<form>
-is perfectly happy to have several fields in a single format that 
+is perfectly happy to have several fields in a single format that
 are all fed by the same data source. For example:
 
     print form
@@ -3205,9 +3235,9 @@ the last column "short"):
     And  all  the  clouds   anged to merry meeti-   rful  adversaries,  /
     that lour'd upon  our   ngs, /  Our  dreadful   He capers nimbly in a
     house / In  the  deep   marches to delightful   lady's chamber.
-    bosom  of  the  ocean   measures.   /   Grim-   
-    buried. / Now are our   visaged war hath smo-   
-    brows bound with vic-   oth'd  his   wrinkled   
+    bosom  of  the  ocean   measures.   /   Grim-
+    buried. / Now are our   visaged war hath smo-
+    brows bound with vic-   oth'd  his   wrinkled
 
 Or should the data be run line-by-line across all three columns (the
 way a Perl 5 C<format> does it), filling one line completely before
@@ -3280,7 +3310,7 @@ news or advertising inserts.
 The C<layout> option controls one other form of inter-column formatting:
 tabular layout.
 
-So far, all the examples of tables we've created (for example, our 
+So far, all the examples of tables we've created (for example, our
 L<normalized scores|"Array data sources">)
 lined up nicely. But that was only because each item in each row
 happened to take the same number of lines (typically just one).
@@ -3289,21 +3319,21 @@ So, a table generator like this:
     my @play = map {"$_\r"}  ( "Othello", "Richard III", "Hamlet"   );
     my @name = map {"$_\r"}  ( "Iago",    "Henry",       "Claudius" );
 
-    print form 
+    print form
          "Character       Appears in  ",
          "____________    ____________",
          "{[[[[[[[[[[}    {[[[[[[[[[[}",
-          \@name,          \@play;
+          \@name,         \@play;
 
 correctly produces:
 
     Character       Appears in
     ____________    ____________
-    Iago            Othello     
-                              
+    Iago            Othello
+
     Henry           Richard III
 
-    Claudius        Hamlet      
+    Claudius        Hamlet
 
 Note that we appended C<"\r"> to each element to add an extra
 newline after each entry in the table. We can't use C<"\n"> to specify a
@@ -3330,17 +3360,17 @@ the same formatter would produce:
     Character       Appears in
     ____________    ____________
     Iago            Othello, The
-                    Moor of     
-    Henry,          Venice      
+                    Moor of
+    Henry,          Venice
     Earl of
-    Richmond        The Life and         
-                    Death of    
+    Richmond        The Life and
+                    Death of
     Claudius,       King Richard
-    King of         III         
-    Denmark         
-                    Hamlet,     
-                    Prince of   
-                    Denmark     
+    King of         III
+    Denmark
+                    Hamlet,
+                    Prince of
+                    Denmark
 
 The problem is that the two block fields we're using just grab all
 the data from each array and format it independently into each column.
@@ -3364,17 +3394,17 @@ which then produces the desired result:
     Character       Appears in
     ____________    ____________
     Iago            Othello, The
-                    Moor of     
-                    Venice      
-                                
+                    Moor of
+                    Venice
+
     Henry,          The Life and
-    Earl of         Death of    
+    Earl of         Death of
     Richmond        King Richard
-                    III         
-                                
-    Claudius,       Hamlet,     
-    King of         Prince of   
-    Denmark         Denmark     
+                    III
+
+    Claudius,       Hamlet,
+    King of         Prince of
+    Denmark         Denmark
 
 
 =head1 Give him line and scope...
@@ -3406,15 +3436,15 @@ For example:
     use Form { layout=>"across",
                interleave=>1,
                page => { header => "Draft $(localtime)\n\n" },
-			 };
+             };
 
-    print form $introduction_format, @introduction_data;
+    print form $introduction_format, \@introduction_data;
 
     while ($format, @data = get_next) {
         print form $format, @data;
     }
 
-    print form $conclusion_format, @conclusion_data;
+    print form $conclusion_format, \@conclusion_data;
 
 
 =head2 Declarative field widths
@@ -3430,7 +3460,7 @@ embedded integer in parentheses (with optional whitespace inside the
 parens). For example:
 
     print form '{[[[( 15 )[[[[} {<<<<<(17)<<<<<<}  {]]](14)]]].[[}',
-               @data;
+               $problem,        $ID,               $description;
 
 The integer in the parentheses acts like a checksum. Its value
 must be identical to the actual width of the field (including the
@@ -3447,7 +3477,7 @@ specifies their number of decimal places.
 
     print form
         '{[[[( 15 )[[[[} {<<<<<(17)<<<<<<}  {]](14.2)]].[}',
-         @data;
+        $problem,        $ID,               $description;
 
 Note that the digits before the decimal still indicate
 the total width of the field. So the C<{]](14.2)]].[}> field
@@ -3474,7 +3504,7 @@ imperatively as:
 
     print form
         '{[{15}[} {<{17}<<}  {]]]]{14.2}]]]].[[}',
-         @data;
+        $problem, $ID,       $description;
 
 Note that the actual width of any field becomes irrelevant if it
 contains an imperative width. The field will be condensed or expanded to
@@ -3506,9 +3536,9 @@ If a format contains two or more starred fields, the available space
 is shared equally between them. So, for example, to create two equal columns
 (say, to compare the contents of two files), we might use:
 
-	use Perl6::Slurp;
+    use Perl6::Slurp;
 
-    print form 
+    print form
          "{[[[[{*}[[[[}   {[[[[{*}[[[[}",
           slurp($file1),  slurp($file2);
 
@@ -3522,10 +3552,10 @@ There is one special case for starred fields: a starred verbatim field:
 
 It acts like any other starred field, growing according to the available
 space, except that it will never grow any wider than the widest line
-of the data it is formatting. For example, whereas a regular starred 
+of the data it is formatting. For example, whereas a regular starred
 field:
-                   
-    print form 
+
+    print form
          '| {[[{*}[[} |',
             $monologue;
 
@@ -3535,19 +3565,19 @@ expands to the full page width:
     | Made glorious summer by this sun of York;                     |
     | And all the clouds that lour'd upon our house                 |
     | In the deep bosom of the ocean buried.                        |
-    | Now are our brows bound with victorious wreaths               |  
+    | Now are our brows bound with victorious wreaths               |
     | Our bruised arms hung up for monuments;                       |
     | Our stern alarums changed to merry meetings,                  |
     | Our dreadful marches to delightful measures.                  |
     | Grim-visaged war hath smooth'd his wrinkled front;            |
-    | And now, instead of mounting barded steeds                    |  
-    | To fright the souls of fearful adversaries,                   |  
-    | He capers nimbly in a lady's chamber.                         |  
+    | And now, instead of mounting barded steeds                    |
+    | To fright the souls of fearful adversaries,                   |
+    | He capers nimbly in a lady's chamber.                         |
 
 
 a starred verbatim field:
 
-    print form 
+    print form
          '| {""{*}""} |',
             $monologue;
 
@@ -3557,14 +3587,14 @@ only expands as much as is strictly necessary to accommodate the data:
     | Made glorious summer by this sun of York;          |
     | And all the clouds that lour'd upon our house      |
     | In the deep bosom of the ocean buried.             |
-    | Now are our brows bound with victorious wreaths;   |  
+    | Now are our brows bound with victorious wreaths;   |
     | Our bruised arms hung up for monuments;            |
     | Our stern alarums changed to merry meetings,       |
     | Our dreadful marches to delightful measures.       |
     | Grim-visaged war hath smooth'd his wrinkled front; |
-    | And now, instead of mounting barded steeds         |  
-    | To fright the souls of fearful adversaries,        |  
-    | He capers nimbly in a lady's chamber.              |  
+    | And now, instead of mounting barded steeds         |
+    | To fright the souls of fearful adversaries,        |
+    | He capers nimbly in a lady's chamber.              |
 
 
 =head2 Extensible fields
@@ -3695,9 +3725,9 @@ used for squeezing:
 
     print form
         {ws=>qr/\h+/},           # squeeze any horizontal whitespace
-        $format1, @data1,
+        $format1, \@data1,
         {ws=>qr/$comment|\s+/},  # now squeeze comments or whitespace
-        $format2, @data2;
+        $format2, \@data2;
 
 For example, suppose we have a eulogy generator:
 
@@ -3789,7 +3819,7 @@ single space in places like C<"Caesar ."> and C<"Romans ,">.
 To remove those blemishes we need to take advantage of a more
 sophisticated aspect of C<form>'s whitespace squeezing behaviour. Namely
 that, when squeezing whitespace using a particular pattern, C<form>
-detects if that pattern captures anything and I<doesn't> squeeze the 
+detects if that pattern captures anything and I<doesn't> squeeze the
 captured items.
 
 More precisely, if the squeeze pattern matches but doesn't capture,
@@ -3818,7 +3848,7 @@ which produces the desired:
     | And grievously hath Caesar answer'd it.    |
 
 This works because, in those instances where the pattern
-matches some whitespace followed by one of the 
+matches some whitespace followed by one of the
 punctuation characters, the punctuation character is captured,
 and the captured character is then used to replace the entire
 whitespace-plus-punctuator. On the other hand, if the
@@ -3842,7 +3872,7 @@ fillers. For example:
         "[ Table of Contents ]",        # Title
         {hfill=>" ."},                  # Fill next fields with spaced dots
         '   {[[[[[{*}[[[[[}{]]]}   ',   # Two indented block fields
-            @contents,     @page;       # Data for those blocks
+            \@contents,    \@page;      # Data for those blocks
 
 This fills the empty space either side of the centred title with a repeated
 C<=-=-=-> sequence. It then fills the gaps to the right of the left-justified
@@ -3851,20 +3881,20 @@ with spaced dots. Which, rather prettily, produces something like:
 
     =-=-=-=-=-=-=-[ Table of Contents ]-=-=-=-=-=-=-=
 
-       Foreword. . . . . . . . . . . . . . . . . .i   
-       Preface . . . . . . . . . . . . . . . . .iii   
-       Glossary. . . . . . . . . . . . . . . . . vi   
-       Introduction. . . . . . . . . . . . . . . .1   
-       The Tempest . . . . . . . . . . . . . . . .7   
-       Two Gentlemen of Verona . . . . . . . . . 17   
-       The Merry Wives of Winsor . . . . . . . . 27   
-       Twelfh Night. . . . . . . . . . . . . . . 39   
-       Measure for Measure . . . . . . . . . . . 50   
-       Much Ado About Nothing. . . . . . . . . . 62   
-       A Midsummer Night's Dream . . . . . . . . 73   
-       Love's Labour's Lost. . . . . . . . . . . 82   
-       The Merchant of Venice. . . . . . . . . . 94   
-       As You Like It. . . . . . . . . . . . . .105   
+       Foreword. . . . . . . . . . . . . . . . . .i
+       Preface . . . . . . . . . . . . . . . . .iii
+       Glossary. . . . . . . . . . . . . . . . . vi
+       Introduction. . . . . . . . . . . . . . . .1
+       The Tempest . . . . . . . . . . . . . . . .7
+       Two Gentlemen of Verona . . . . . . . . . 17
+       The Merry Wives of Winsor . . . . . . . . 27
+       Twelfh Night. . . . . . . . . . . . . . . 39
+       Measure for Measure . . . . . . . . . . . 50
+       Much Ado About Nothing. . . . . . . . . . 62
+       A Midsummer Night's Dream . . . . . . . . 73
+       Love's Labour's Lost. . . . . . . . . . . 82
+       The Merchant of Venice. . . . . . . . . . 94
+       As You Like It. . . . . . . . . . . . . .105
 
 Note that the fill sequence doesn't have to be a single character and
 that the fill pattern is consistent across multiple fields and between
@@ -3879,7 +3909,7 @@ and right-hand gaps in a particular field, using the C<lfill> and C<rfill>
 options. This is particularly common for numerical fields. For example,
 this call to C<form>:
 
-    print form 
+    print form
       'Name              Bribe (per dastardry)',
       '=============     =====================',
       '{[[[[[[[[[[[}         {]],]]].[[[}     ',
@@ -3894,7 +3924,7 @@ would print something like:
     Borachio               45,615.0
     Shylock                    19.0003
 
-with the numeric field padded with whitespace and 
+with the numeric field padded with whitespace and
 only showing as many decimal places as there are in
 the data.
 
@@ -3904,12 +3934,12 @@ to add a few digits to the front of each number), we might prefer to
 put stars before the numbers and show all decimal places.
 We could do that like so:
 
-    print form 
+    print form
       'Name              Bribe (per dastardry)',
       '=============     =====================',
       '{[[[[[[[[[[[}         {]],]]].[[[}     ',
       \@names,               {lfill=>'*', rfill=>'0'},
-                             @bribes;
+                             \@bribes;
 
 which would then print:
 
@@ -3979,10 +4009,10 @@ we'd get:
 
     Task                      Processor
     ====                      =========
-    Borrow story                  1      
-    Rename characters             2      
-    Subdivide into scenes         3      
-    Write dialogue                4      
+    Borrow story                  1
+    Rename characters             2
+    Subdivide into scenes         3
+    Write dialogue                4
     Check rhythm and meter  [unallocated]
     Insert puns and japes   [unallocated]
 
@@ -4026,15 +4056,15 @@ to create an overflowing column of text like so:
 
     print form
         {interleave=>1}, <<EOFORMAT,
-	Name:
-	  {[[[[[[[[[[[[}
-					  Biography:
-	Status:             {<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<}
-	  {[[[[[[[[[[[[}    {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
-						{VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
-	Comments:           {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
-	  {[[[[[[[[[[[}     {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
-	EOFORMAT
+    Name:
+      {[[[[[[[[[[[[}
+                      Biography:
+    Status:             {<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<}
+      {[[[[[[[[[[[[}    {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
+                        {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
+    Comments:           {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
+      {[[[[[[[[[[[}     {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
+    EOFORMAT
         $name,
         $biography,
         $status,
@@ -4048,29 +4078,29 @@ to overflow fields turns out to be not good enough in the general case.
 For instance, suppose we had wanted the biography field to start at the
 first line of the output text:
 
-    Name:             Biography:                            
-      William           William Shakespeare was born on    
-      Shakespeare       April 23, 1564 in Strathford-upon- 
-                        Avon, England; he was third of     
-    Status:             eight children from Father John    
-      Deceased (1564    Shakespeare and Mother Mary Arden. 
-      -1616)            Shakespeare began his education at 
-                        the age of seven when he probably  
-    Comments:           attended the Strathford grammar    
-      Theories          school. The school provided        
-      abound as to      Shakespeare with his formal        
-      the true          education. The students chiefly    
-      author of his     studied Latin rhetoric, logic, and 
-      plays. The        literature. His knowledge and      
-      prime             imagination may have come from his 
-      alternative       reading of ancient authors and     
-      candidates        poetry. In November 1582,          
-      being Sir         Shakespeare received a license to  
+    Name:             Biography:
+      William           William Shakespeare was born on
+      Shakespeare       April 23, 1564 in Strathford-upon-
+                        Avon, England; he was third of
+    Status:             eight children from Father John
+      Deceased (1564    Shakespeare and Mother Mary Arden.
+      -1616)            Shakespeare began his education at
+                        the age of seven when he probably
+    Comments:           attended the Strathford grammar
+      Theories          school. The school provided
+      abound as to      Shakespeare with his formal
+      the true          education. The students chiefly
+      author of his     studied Latin rhetoric, logic, and
+      plays. The        literature. His knowledge and
+      prime             imagination may have come from his
+      alternative       reading of ancient authors and
+      candidates        poetry. In November 1582,
+      being Sir         Shakespeare received a license to
       Francis           marry Anne Hathaway. At the time of
-      Bacon,            their marriage, Shakespeare was 18 
+      Bacon,            their marriage, Shakespeare was 18
       Christopher       years old and Anne was 26. They had
       Marlowe, or       three children, the oldest Susanna,
-      Edward de         and twins- a boy, Hamneth, and a   
+      Edward de         and twins- a boy, Hamneth, and a
       Vere              girl, Judith. Before his death on
                         April 23 1616, William Shakespeare
                         had written thirty-seven plays. He
@@ -4083,15 +4113,15 @@ To do that, we would have required a call to C<form> like this:
 
     print form
         {interleave=>1}, <<EOFORMAT,
-	Name:             Biography:
-	  {[[[[[[[[[[[[}    {[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[}
-						{VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
-	Status:             {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
-	  {[[[[[[[[[[[[}    {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
-						{VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
-	Comments:           {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
-	  {[[[[[[[[[[[}     {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
-	EOFORMAT
+    Name:             Biography:
+      {[[[[[[[[[[[[}    {[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[}
+                        {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
+    Status:             {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
+      {[[[[[[[[[[[[}    {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
+                        {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
+    Comments:           {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
+      {[[[[[[[[[[[}     {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
+    EOFORMAT
         $name,
         $biography,
         $status,
@@ -4099,92 +4129,92 @@ To do that, we would have required a call to C<form> like this:
 
 Note that the first line of the Biography field now has to be a block field,
 not a single-line field (as in previous versions). It can't be a single-line,
-because the Name field is a block field and that would leave a gap in the 
+because the Name field is a block field and that would leave a gap in the
 Biography column:
 
-    Name:             Biography:                            
-      William           William Shakespeare was born on    
-      Shakespeare       
-                        April 23, 1564 in Strathford-upon- 
-    Status:             Avon, England; he was third of     
+    Name:             Biography:
+      William           William Shakespeare was born on
+      Shakespeare
+                        April 23, 1564 in Strathford-upon-
+    Status:             Avon, England; he was third of
                         etc.
 
 So it has to be a block field, to "keep up" with however much output the
 multi-line Name field produces. Unfortunately, starting the Biography column
 with a normal block field doesn't solve the problem either. In fact we get:
 
-    Name:             Biography:                            
-      William           William Shakespeare was born on    
-      Shakespeare       April 23, 1564 in Strathford-upon- 
-                        Avon, England; he was third of     
-                        eight children from Father John    
-                        Shakespeare and Mother Mary Arden. 
-                        Shakespeare began his education at 
-                        the age of seven when he probably  
-                        attended the Strathford grammar    
-                        school. The school provided        
-                        Shakespeare with his formal        
-                        education. The students chiefly    
-                        studied Latin rhetoric, logic, and 
-                        literature. His knowledge and      
-                        imagination may have come from his 
-                        reading of ancient authors and     
-                        poetry. In November 1582,          
-                        Shakespeare received a license to  
+    Name:             Biography:
+      William           William Shakespeare was born on
+      Shakespeare       April 23, 1564 in Strathford-upon-
+                        Avon, England; he was third of
+                        eight children from Father John
+                        Shakespeare and Mother Mary Arden.
+                        Shakespeare began his education at
+                        the age of seven when he probably
+                        attended the Strathford grammar
+                        school. The school provided
+                        Shakespeare with his formal
+                        education. The students chiefly
+                        studied Latin rhetoric, logic, and
+                        literature. His knowledge and
+                        imagination may have come from his
+                        reading of ancient authors and
+                        poetry. In November 1582,
+                        Shakespeare received a license to
                         marry Anne Hathaway. At the time of
-                        their marriage, Shakespeare was 18 
+                        their marriage, Shakespeare was 18
                         years old and Anne was 26. They had
                         three children, the oldest Susanna,
-                        and twins- a boy, Hamneth, and a   
-                        girl, Judith. Before his death on  
-                        April 23 1616, William Shakespeare 
-                        had written thirty-seven plays. He 
-                        is generally considered the        
-                        greatest playwright the world has  
-                        ever known and has always been the 
-                        world's most popular author.       
-                                                           
-    Status:                                                
-      Deceased (1564                                       
-      -1616)                                               
-                                                           
-    Comments:                                              
-      Theories                                             
-      abound as to                                         
-      the true                                             
-      author of his                                        
-      plays. The                                           
-      prime                                                
-      alternative                                          
-      candidates                                           
-      being Sir                                            
-      Francis                                              
-      Bacon,                                               
-      Christopher                                          
-      Marlowe, or                                          
-      Edward de                                            
-      Vere                                                 
+                        and twins- a boy, Hamneth, and a
+                        girl, Judith. Before his death on
+                        April 23 1616, William Shakespeare
+                        had written thirty-seven plays. He
+                        is generally considered the
+                        greatest playwright the world has
+                        ever known and has always been the
+                        world's most popular author.
+
+    Status:
+      Deceased (1564
+      -1616)
+
+    Comments:
+      Theories
+      abound as to
+      the true
+      author of his
+      plays. The
+      prime
+      alternative
+      candidates
+      being Sir
+      Francis
+      Bacon,
+      Christopher
+      Marlowe, or
+      Edward de
+      Vere
 
 Normal block fields are remorseless in consuming all of their data.
 So the first Biography field absolutely will not stop formatting, ever,
 until your entire C<$biography> string is gone.
 
-What we really need here, is a kinder, gentler block field; a 
+What we really need here, is a kinder, gentler block field; a
 block field that formats minimally, like an overflow field.
 And we get that with yet another C<height> option:
 C<< height=>"minimal" >>. Like so:
 
     print form
         {interleave=>1}, <<EOFORMAT,
-	Name:             Biography:
-	  {[[[[[[[[[[[[}    {[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[}
-						{VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
-	Status:             {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
-	  {[[[[[[[[[[[[}    {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
-						{VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
-	Comments:           {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
-	  {[[[[[[[[[[[}     {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
-	EOFORMAT
+    Name:             Biography:
+      {[[[[[[[[[[[[}    {[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[}
+                        {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
+    Status:             {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
+      {[[[[[[[[[[[[}    {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
+                        {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
+    Comments:           {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
+      {[[[[[[[[[[[}     {VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV}
+    EOFORMAT
          $name,
          {height=>"minimal"}, $biography,
          $status,
@@ -4208,20 +4238,20 @@ consist of a set of column titles, followed by the corresponding columns
 of data. And, typically, those column titles are underlined to make them
 stand out:
 
-    print form 
+    print form
       'Name              Bribe (per dastardry)',
       '=============     =====================',
       '{[[[[[[[[[[[}         {]],]]].[[[}     ',
-      @names,                @bribes;
+      \@names,               \@bribes;
 
 So C<form> has an option that automates that process. For
 example, the payments example above could also have been written:
 
-    print form 
+    print form
       'Name              Bribe (per dastardry)',
       {under=>"="},
       '{[[[[[[[[[[[}         {]],]]].[[[}     ',
-      @names,                @bribes;
+      \@names,               \@bribes;
 
 The C<under> option takes a string and uses it to underline the most
 recently formatted line. It does this by examining the formats
@@ -4238,7 +4268,7 @@ For example, this call to C<form>:
         '      Rank Name         Serial Number',
         {under=>"_"},
         '{]]]]]]]]} {[[[[[[[[[}     {IIIII}',
-             @ranks,@names,          @nums;
+            \@ranks,\@names,        \@nums;
 
 prints:
 
@@ -4247,7 +4277,7 @@ prints:
       Corporal Nym              CMXVII
     Lieutenant Bardolph          CCIV
        Captain Spurio           MMMCDX
-       General Pompey             XI  
+       General Pompey             XI
 
 The usual effect is that the auto-generated underlines always
 extend to the edges of both the preceding title and the following
@@ -4255,7 +4285,7 @@ field, whichever is wider.
 
 Many people, of course, prefer to draw the underlines themselves, as
 the results are then much easier to visualize when looking at the code.
-The C<under> option is most useful when we're constructing tables 
+The C<under> option is most useful when we're constructing tables
 programmatically, with columns and column titles that are only known
 at run-time.
 
@@ -4267,21 +4297,21 @@ the vertical alignment of columns within a formatted text, but it could
 also potentially increase the size of C<form>'s output unnecessarily.
 For example, the following:
 
-    print form 
+    print form
         'To Do:',
         '   {[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[}',
-            @todo;
+            \@todo;
 
 might produce something like:
 
     To Do:
-       Dissemble                                         
-       Deceive                                           
-       Dispute                                           
-       Defy                                              
-       Duel                                              
-       Defeat                                            
-       Dispatch                                         
+       Dissemble
+       Deceive
+       Dispute
+       Defy
+       Duel
+       Defeat
+       Dispatch
 
 That looks fine but, because each line is produced by the large
 left-justified field that is automatically filled with whitespace, the
@@ -4309,7 +4339,7 @@ C<untrimmed> option:
     print form {untrimmed=>1},
         'To Do:',
         '   {[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[}',
-            @todo;
+            \@todo;
 
 
 =head1 Page control
@@ -4331,10 +4361,10 @@ precisely, by its various suboptions):
                     footer => \&make_footer,    # Default: no footer
                     feed   => \&make_pagefeed,  # Default: no pagefeed
                     body   => \&adjust_body,    # Default: no chiropracty
-				  }
-		},
+                  }
+        },
         $format,
-        @args;
+        \@data;
 
 
 =head2 Measure his woe the length and breadth of mine...
@@ -4345,6 +4375,11 @@ this suboption is set to infinity, which produces that single, arbitrarily
 long, unbroken page of text. But the suboption can be set to any
 positive integer value, to cause C<form> to generate distinct
 pages of that many lines each.
+
+Note however, that if the value specified for the page length results in
+no formatted text appearing on a page (because the available length is
+entirely consumed by headers or footers), then the length will be (silently)
+increased so that a single line of content appears on each page.
 
 The value of the C<< page => { width => ... } >> suboption is
 used to determine the width of distributive fields and
@@ -4359,7 +4394,7 @@ This suboption is generally only of use in headers and footers (see below).
 
 =head2 Headers and footers
 
-The C<< page => { header => ... } >> suboption specifies a hash containing 
+The C<< page => { header => ... } >> suboption specifies a hash containing
 a set of strings or subroutines that are to be used to create page headers.
 Each key of the hash indicates a particular kind of page that the
 corresponding value will provide the header for. For example:
@@ -4383,17 +4418,17 @@ use the full title and author as the header of the first page,
 
 write C<"-- The End --"> across the top of the last page,
 
-=item * 
+=item *
 
 prepend the act and scene information to the start of any odd page
 (except, of course, the first or the last), and
 
-=item * 
+=item *
 
 provide an empty line as the header of any even page (except the last,
 if it happens to be even).
 
-=back 
+=back
 
 Note that, in this case, since we've provided specific headers for every
 odd and even page, the C<"other"> header will never be used. On the other
@@ -4404,7 +4439,7 @@ hand, if we'd specified:
               }
 
 then every page except the first would have just a right-justified title at
-the top. 
+the top.
 
 Of course, if we want every page to have the same header, we can just write:
 
@@ -4453,7 +4488,7 @@ Pagefeeds work the same way too. A pagefeed is a string that is placed
 between the footer of one page and the header of the next. They're like
 formfeeds, except they can be any string we choose.
 They're called "pagefeeds" instead of "formfeeds" because they're
-placed between pages, not between calls to C<form>. 
+placed between pages, not between calls to C<form>.
 
 
 
@@ -4499,12 +4534,12 @@ formatting of the page body).
 For example, to add line numbers to the text each page (but I<not>
 to the headers or footers or filler lines):
 
-	my $linenum = 1;
+    my $linenum = 1;
 
     sub numerate {
-		my @lines = @{$_[0]};
-		my @fill  = @{$_[1]};
-		my $page  = ${$_[2]}{page};
+        my @lines = @{$_[0]};
+        my @fill  = @{$_[1]};
+        my $page  = ${$_[2]}{page};
 
         # Compute range of line numbers
         my @linenums = ($linenum .. $linenum+@lines-1);
@@ -4535,31 +4570,31 @@ to the headers or footers or filler lines):
 which produces:
 
     ==========
-                
-    1      Now is the winter of our discontent /  
-    2      Made glorious summer by this sun of    
-    3      York; / And all the clouds that lour'd 
-    4      upon our house / In the deep bosom of  
-    5      the ocean buried. / Now are our brows  
-    6      bound with victorious wreaths; / Our   
-    7      bruised arms hung up for monuments; /  
-    8      Our stern alarums changed to merry     
-    9      meetings, / Our dreadful marches to    
-                
+
+    1      Now is the winter of our discontent /
+    2      Made glorious summer by this sun of
+    3      York; / And all the clouds that lour'd
+    4      upon our house / In the deep bosom of
+    5      the ocean buried. / Now are our brows
+    6      bound with victorious wreaths; / Our
+    7      bruised arms hung up for monuments; /
+    8      Our stern alarums changed to merry
+    9      meetings, / Our dreadful marches to
+
     ==========
-                
-    10     delightful measures. Grim-visaged war  
+
+    10     delightful measures. Grim-visaged war
     11     hath smooth'd his wrinkled front; / And
-    12     now, instead of mounting barded steeds 
-    13     / To fright the souls of fearful       
-    14     adversaries, / He capers nimbly in a   
-    15     lady's chamber.                        
-                
-                
-                
-                
+    12     now, instead of mounting barded steeds
+    13     / To fright the souls of fearful
+    14     adversaries, / He capers nimbly in a
+    15     lady's chamber.
+
+
+
+
     ==========
-                
+
     16                      To be, or not to be -- that is the question: /
     17                         Whether 'tis nobler in the mind to suffer /
     18                       The slings and arrows of outrageous fortune /
@@ -4569,28 +4604,28 @@ which produces:
     22                      The heartache, and the thousand natural shocks
     23                      / That flesh is heir to. 'Tis a consummation /
     24                        Devoutly to be wished. To die, to sleep -- /
-                
+
     ==========
-                
+
     25                         To sleep -- perchance to dream: ay, there's
     26                          the rub, / For in that sleep of death what
     27                         dreams may come / When we have shuffled off
     28                             this mortal coil, / Must give us pause.
     29                        There's the respect / That makes calamity of
     30                                                       so long life.
-                   
-                   
-                   
-                   
-                   
-                   
+
+
+
+
+
+
                    E<nbsp>
 
 
 
 =head1 User-defined fields
 
-Perl6::Form provides a large variety of field types, but not every 
+Perl6::Form provides a large variety of field types, but not every
 possible type. For example, suppose we want a field that masks
 its data in some way.  Perhaps a field that blanks out certain
 words by replacing them with the corresponding number of X's.
@@ -4599,7 +4634,7 @@ We could always do that by writing a subroutine that generates the
 appropriate filter:
 
     sub expurgate {
-		my $hidewords = join "|", map quotemeta, @_;
+        my $hidewords = join "|", map quotemeta, @_;
         return sub {
             $_[0] =~ s/($hidewords)/ 'X' x length $1 /gixe;
             return $data;
@@ -4620,18 +4655,18 @@ to produce:
 
     [Ye following tranfcript hath been cenfored by Order of ye King]
 
-             And therefore, since I cannot prove a lover,  
-             To entertain these fair well-spoken days,     
-             I am determined to prove a XXXXXXX            
-             And hate the idle pleasures of these days.    
-             XXXXs have I laid, inductions dangerous,      
-             By drunken prophecies, XXXXXs and dreams,     
-             To set my brother Clarence and the king       
-             In XXXXXX hate the one against the other:     
-             And if King Edward be as true and just        
-             As I am subtle, XXXXX and XXXXXXXXXXX,        
-             This day should Clarence closely be mew'd up, 
-             About a prophecy, which says that XXX         
+             And therefore, since I cannot prove a lover,
+             To entertain these fair well-spoken days,
+             I am determined to prove a XXXXXXX
+             And hate the idle pleasures of these days.
+             XXXXs have I laid, inductions dangerous,
+             By drunken prophecies, XXXXXs and dreams,
+             To set my brother Clarence and the king
+             In XXXXXX hate the one against the other:
+             And if King Edward be as true and just
+             As I am subtle, XXXXX and XXXXXXXXXXX,
+             This day should Clarence closely be mew'd up,
+             About a prophecy, which says that XXX
              Of Edward's heirs the XXXXXXXX shall be.
 
 Of course, if this were Puritanism and not Perl, we might have a long
@@ -4673,7 +4708,7 @@ So C<censor_field> could be implemented like so:
 
         # Constructor subroutine for user-defined censor fields...
         sub censor_field {
-			my ($field_spec, $opts) = @_;
+            my ($field_spec, $opts) = @_;
 
             # Set up the field's 'break' option with a censorious break...
             $opts->{break} = break_and_censor($->opts{break});
@@ -4690,7 +4725,7 @@ breaker subroutine:
 
         # Create a new 'break' sub...
         sub break_and_censor {
-			my $original_breaker = @_;
+            my $original_breaker = @_;
             return sub {
 
                 # Call the field's original 'break' sub...
@@ -4709,18 +4744,18 @@ break-and-expurgate the data placed in them, we are now in a position
 to create a module that encapsulates the new formatting functionality:
 
     package Ministry::Of::Truth
-	use Perl6::Export;
+    use Perl6::Export;
 
-	# Internal mechanism (as above)...
-	my $proscribed = "...";
-	sub break_and_censor (&original_breaker) {...}
-	sub censor_field ($field_spec, %opts) {...}
+    # Internal mechanism (as above)...
+    my $proscribed = "...";
+    sub break_and_censor (&original_breaker) {...}
+    sub censor_field ($field_spec, %opts) {...}
 
-	# Make the new field type standard by default in this scope...
-	use Form { field => [ rx/\{ X+ \}/ => \&censor_field ] };
+    # Make the new field type standard by default in this scope...
+    use Form { field => [ rx/\{ X+ \}/ => \&censor_field ] };
 
-	# Re-export the specialized &form that was imported above...  
-	sub form is export(:DEFAULT) {...}
+    # Re-export the specialized &form that was imported above...
+    sub form is export(:DEFAULT) {...}
 
 }
 
@@ -4729,7 +4764,7 @@ trample on free speech I<much> more easily:
 
     use Ministry::Of::Truth;
 
-    print form 
+    print form
         "[Ye following tranfcript hath been cenfored by Order of ye King]\n\n",
         "        {XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX}",
                   $speech;
@@ -4748,7 +4783,7 @@ one-to-one spacing of a format). For example:
                     '=' => '{<=II{1}II=}',   # 1-char-wide, middle-justified block
                     '_' => '{<_II{1}II_}',   # 1-char-wide, bottom-justified block
                   }
-		},
+        },
         '~~~~~~~~~',
         '^ _ = _ ^',   qw(like round and orient perls),
         '~~~~~~~~~';
@@ -4761,40 +4796,40 @@ prints:
     k o n i r
     e u d e l
       n   n s
-      d   t  
+      d   t
     ~~~~~~~~~
 
 Single fields are particularly useful for labelling the vertical axes of a
 graph:
 
-    use Form {field => [ '=' => '{<=II{1}II=}' ] };
+    use Perl6::Form {field => [ '=' => '{<=II{1}II=}' ] };
 
-    @vert_label = qw(Villain's fortunes);
+    $vert_label = "Success";
     $hor_label  = "Time";
 
-    print form 
-       '     ^                                        ',
-       ' = = | {""""""""""""""""""""""""""""""""""""} ', @vert_label, \@data,
-       '     +--------------------------------------->',
-       '      {|||||||||||||||||||||||||||||||||||||} ', $hor_label;
+    print form
+       '   ^                                        ',
+       ' = | {""""""""""""""""""""""""""""""""""""} ', $vert_label, \@data,
+       '   +--------------------------------------->',
+       '    {|||||||||||||||||||||||||||||||||||||} ', $hor_label;
 
 which produces:
 
-         ^                                        
-         |                                        
-     V   |       *                                
-     i f |     *   *                              
-     l o |    *     *                             
-     l r |                                        
-     a t |   *       *                            
-     i u |                                        
-     n n |  *         *                           
-     ' e |                                        
-     s s |                                        
-         |                                        
-         | *           *                          
-         +--------------------------------------->
-                           Time                   
+        ^
+        |
+        |       *
+        |     *   *
+      S |    *     *
+      u |
+      c |   *       *
+      c |
+      e |  *         *
+      s |
+      s |
+        |
+        | *           *
+        +--------------------------------------->
+                           Time
 
 Specifying these kinds of single-character block markers is perhaps the
 commonest use of user-defined fields. But the:
@@ -4822,10 +4857,10 @@ So our previous example could also have been written:
 
     print form
         {single => "="},
-        '     ^                                        ',
-        ' = = | {""""""""""""""""""""""""""""""""""""} ', @vert_label, \@data,
-        '     +--------------------------------------->',
-        '      {|||||||||||||||||||||||||||||||||||||} ', $hor_label;
+        '    ^                                        ',
+        ' =  | {""""""""""""""""""""""""""""""""""""} ', $vert_label, \@data,
+        '    +--------------------------------------->',
+        '     {|||||||||||||||||||||||||||||||||||||} ', $hor_label;
 
 
 =head1 Bulleted lists
@@ -4833,17 +4868,17 @@ So our previous example could also have been written:
 Suppose we want a list of items bulleted by "diamonds":
 
     <> A rubber sword (laminated with mylar to
-       look suitably shiny).                   
-    <> Cotton tights (summer performances).   
-    <> Woolen tights (winter performances or  
+       look suitably shiny).
+    <> Cotton tights (summer performances).
+    <> Woolen tights (winter performances or
        those actors who are willing to admit
-       to being over 65 years of age).                 
-    <> Talcum powder.                         
-    <> Codpieces (assorted sizes).            
-    <> Singlet.                               
-    <> Double.                                
-    <> Triplet (Kings and Emperors only).     
-    <> Supercilious attitude (optional).      
+       to being over 65 years of age).
+    <> Talcum powder.
+    <> Codpieces (assorted sizes).
+    <> Singlet.
+    <> Double.
+    <> Triplet (Kings and Emperors only).
+    <> Supercilious attitude (optional).
 
 Something like this works well enough:
 
@@ -4890,7 +4925,7 @@ didn't need to bullet our list we could just write:
 and C<form> would take care of iterating over the C<@items> for us. It
 seems that things ought to be that easy for bulleted lists as well.
 
-And, of course, things I<are> that easy. 
+And, of course, things I<are> that easy.
 
 All we need to do is tell C<form> that whenever the string C<< "<>" >>
 appears in a format, it should be treated as a bullet. That is, it should
@@ -4905,7 +4940,7 @@ To tell C<form> all that we use the C<bullet> option:
             \@items;
 
 The presence of this C<bullet> option causes C<form> to treat the sequence
-C<< "<>" >> as a special field. That special field interpolates the 
+C<< "<>" >> as a special field. That special field interpolates the
 string C<< "<>" >> when the field immediately to its right begins to
 format a new data element, but thereafter interpolates only spaces until
 the adjacent field finishes formatting that data element.
@@ -4952,16 +4987,16 @@ in a single format. For example:
 
 would print:
 
-    + A rubber sword,                65 years of age).     
-      laminated with mylar         + Talcum powder.        
-      to look suitably             + Codpieces (assorted   
-      shiny.                         sizes).               
-    + Cotton tights (summer        + Singlet.              
-      performances).               + Double.               
-    + Woolen tights (winter        + Triplet (Kings and    
-      performances or those          Emperors only).       
-      actors who are willing       + Supercilious attitude 
-      to admit to being over         (optional).           
+    + A rubber sword,                65 years of age).
+      laminated with mylar         + Talcum powder.
+      to look suitably             + Codpieces (assorted
+      shiny.                         sizes).
+    + Cotton tights (summer        + Singlet.
+      performances).               + Double.
+    + Woolen tights (winter        + Triplet (Kings and
+      performances or those          Emperors only).
+      actors who are willing       + Supercilious attitude
+      to admit to being over         (optional).
 
 
 =head1 WARNING

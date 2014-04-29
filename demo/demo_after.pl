@@ -1,3 +1,7 @@
+#! /opt/local/bin/perl5.10.0
+use 5.010;
+use warnings;
+
 use Perl6::Form;
 
 

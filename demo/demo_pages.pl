@@ -13,7 +13,7 @@ my %page = (
 	footer => { other => sub{form "\n{>{70}>}", "../".($_[0]{page}{number}+1)},
 			    last  => sub{form "\n{||{70}||}", "END OF TEXT"},
 			  },
-	length => 15,
+	length => 1,
 	width  => 72,
 	feed   => "^L\n",
 );

@@ -1,3 +1,6 @@
+use 5.010;
+use warnings;
+
 use Perl6::Form;
 
 my @data = split "\n", <<EODATA;

@@ -1,5 +1,5 @@
 Changes
-Form.pm
+lib/Perl6/Form.pm
 Makefile.PL
 MANIFEST
 README
@@ -69,3 +69,4 @@ demo/demo_verbatim.pl
 demo/demo_verbatim2.pl
 demo/demo_vfill.pl
 demo/demo_zero.pl
+META.yml                                 Module meta-data (added by MakeMaker)

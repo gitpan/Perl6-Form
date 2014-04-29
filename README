@@ -1,9 +1,4 @@
-==============================================================================
-                    Release of version 0.04 of Perl6::Form
-==============================================================================
-
-
-Perl6/Form version 0.01
+Perl6::Form version 0.005
 =======================
 
 Implements the Perl 6 'form' formatting function
@@ -30,20 +25,3 @@ Damian Conway (damian@conway.org)
  Copyright (c) 2003, Damian Conway. All Rights Reserved.
  This module is free software. It may be used, redistributed
     and/or modified under the same terms as Perl itself.
-
-
-==============================================================================
-
-CHANGES IN VERSION 0.04
-
-
-    - Updated internals to mirror interface changes in Perl6::Export
-
-
-==============================================================================
-
-AVAILABILITY
-
-Perl6::Form has been uploaded to the CPAN
-
-==============================================================================
